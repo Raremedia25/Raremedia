@@ -1,0 +1,135 @@
+/* THEO TECH LTD — application shell styles (Bootstrap 5.3 on top) */
+
+:root {
+  --tt-sidebar-width: 240px;
+  --tt-topbar-height: 56px;
+  --tt-brand: #0d6efd;
+  --tt-sidebar-bg: #111827;
+  --tt-sidebar-fg: #cbd5e1;
+  --tt-sidebar-active: #1f2937;
+}
+
+html, body { height: 100%; }
+body { background: var(--bs-body-bg); }
+
+/* ---------- login ---------- */
+.tt-auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+}
+.tt-auth-card { width: 100%; max-width: 420px; }
+.tt-auth-brand { font-weight: 700; letter-spacing: .04em; }
+
+/* ---------- app layout ---------- */
+.tt-app { display: flex; min-height: 100vh; }
+
+.tt-sidebar {
+  width: var(--tt-sidebar-width);
+  flex: 0 0 var(--tt-sidebar-width);
+  background: var(--tt-sidebar-bg);
+  color: var(--tt-sidebar-fg);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  transition: transform .2s ease;
+}
+.tt-sidebar .tt-logo {
+  height: var(--tt-topbar-height);
+  display: flex; align-items: center; gap: .6rem;
+  padding: 0 1rem;
+  color: #fff; font-weight: 700; text-decoration: none;
+}
+.tt-sidebar .tt-tagline {
+  padding: 0 1rem .75rem;
+  font-size: .75rem; color: #94a3b8;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.tt-sidebar .nav { padding: .75rem .5rem; gap: 2px; }
+.tt-sidebar .nav-link {
+  color: var(--tt-sidebar-fg);
+  border-radius: .5rem;
+  padding: .6rem .75rem;
+  display: flex; align-items: center; gap: .65rem;
+}
+.tt-sidebar .nav-link i { font-size: 1.1rem; width: 1.3rem; text-align: center; }
+.tt-sidebar .nav-link:hover { background: var(--tt-sidebar-active); color: #fff; }
+.tt-sidebar .nav-link.active { background: var(--tt-brand); color: #fff; }
+.tt-sidebar .nav-group-title { cursor: default; color: #94a3b8; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; padding-bottom: .2rem; }
+.tt-sidebar .nav-group-title:hover { background: none; color: #94a3b8; }
+.tt-sidebar .nav-sub { padding-left: 1.4rem; font-size: .95rem; }
+.tt-sidebar .nav-sub i { font-size: 1.4rem; width: 1rem; }
+
+.tt-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+
+.tt-topbar {
+  height: var(--tt-topbar-height);
+  display: flex; align-items: center; gap: .75rem;
+  padding: 0 1rem;
+  background: var(--bs-body-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  position: sticky; top: 0; z-index: 1020;
+}
+.tt-topbar .tt-page-title { font-weight: 600; font-size: 1.05rem; margin: 0; }
+
+.tt-content { padding: 1.25rem; flex: 1 1 auto; }
+
+.tt-backdrop {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1029;
+}
+
+@media (max-width: 991.98px) {
+  .tt-sidebar {
+    position: fixed; left: 0; top: 0; z-index: 1030;
+    transform: translateX(-100%);
+  }
+  body.tt-sidebar-open .tt-sidebar { transform: translateX(0); }
+  body.tt-sidebar-open .tt-backdrop { display: block; }
+  .tt-content { padding: 1rem; }
+}
+
+/* ---------- widgets ---------- */
+.tt-stat-card .tt-stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+.tt-stat-card .tt-stat-label { color: var(--bs-secondary-color); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+.tt-stat-card .tt-stat-icon {
+  width: 44px; height: 44px; border-radius: .75rem;
+  display: grid; place-items: center; font-size: 1.3rem; flex: 0 0 44px;
+}
+.tt-stat-card[role="button"] { cursor: pointer; }
+.tt-stat-card[role="button"]:hover { border-color: var(--bs-primary); }
+
+.tt-toast-container { z-index: 1090; }
+.tt-money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tt-lookup { width: 320px; max-width: 100%; }
+.tt-thumb { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
+.tt-thumb-lg { width: 160px; height: 160px; object-fit: contain; }
+.tt-thumb-xl { width: 100%; max-width: 260px; aspect-ratio: 1; object-fit: contain; }
+
+/* ---------- DataTable ---------- */
+.tt-datatable .tt-dt-search { width: 240px; max-width: 100%; }
+.tt-datatable th.tt-sortable { cursor: pointer; user-select: none; }
+.tt-datatable th.tt-sortable:hover { background: var(--bs-tertiary-bg); }
+.tt-datatable th.tt-sorted { color: var(--bs-primary); }
+.tt-datatable .tt-sort-icon { font-size: .8em; }
+.tt-datatable.tt-dt-loading tbody { opacity: .55; transition: opacity .15s; }
+.tt-datatable tbody tr[role="button"] { cursor: pointer; }
+.tt-datatable td { vertical-align: middle; }
+@media (max-width: 575.98px) {
+  .tt-datatable .tt-dt-search { width: 100%; }
+}
+
+/* large touch targets for the sell page */
+.tt-touch .btn { min-height: 44px; }
+.tt-touch select[size] option { padding: .5rem .25rem; }
+
+/* ---------- print (reports) ---------- */
+@media print {
+  .tt-sidebar, .tt-topbar, .tt-no-print, .tt-backdrop { display: none !important; }
+  .tt-content { padding: 0; }
+  .card { border: 0; box-shadow: none !important; }
+}

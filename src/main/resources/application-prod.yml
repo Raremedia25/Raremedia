@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${APP_DB_URL:jdbc:postgresql://db:5432/theo_tech}
+    username: ${APP_DB_USER:theotech}
+    password: ${APP_DB_PASSWORD}
+
+server:
+  # hosting platforms (Render) tell the app which port to listen on
+  port: ${PORT:8080}
+  # Caddy or the platform terminates HTTPS and forwards X-Forwarded-* headers; trust them so redirects and cookies use https.
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        # true when the site is reached over HTTPS (a domain in SITE_ADDRESS); set APP_COOKIE_SECURE=false
+        # in .env when the shop reaches the server over plain http://<ip>, otherwise the browser drops the cookie.
+        secure: ${APP_COOKIE_SECURE:true}
+
+logging:
+  level:
+    com.theotech: INFO
+    org.hibernate.SQL: WARN

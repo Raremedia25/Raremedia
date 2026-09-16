@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=5">
+  <script src="/js/theme.js?v=5"></script>
+</head>
+<body data-page="settings" data-title="Settings" data-admin>
+  <div id="app-content" hidden>
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div class="card shadow-sm">
+          <div class="card-header fw-semibold"><i class="bi bi-shop me-2 text-primary"></i>Shop</div>
+          <div class="card-body">
+            <form id="settings-form" novalidate>
+              <div class="mb-3">
+                <label class="form-label" for="companyName">Shop name</label>
+                <input class="form-control" id="companyName" name="companyName" maxlength="120" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="companyAddress">Address</label>
+                <input class="form-control" id="companyAddress" name="companyAddress" maxlength="200">
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="companyPhone">Phone</label>
+                <input class="form-control" id="companyPhone" name="companyPhone" maxlength="40">
+              </div>
+              <hr>
+              <div class="mb-3">
+                <label class="form-label" for="lowStockThreshold">Low-stock level</label>
+                <input class="form-control w-auto" id="lowStockThreshold" name="lowStockThreshold" type="number" min="0" max="100000" step="1" required>
+                <div class="form-text">Products with this many units or fewer are shown as LOW STOCK on the dashboard and stock page. Default 5.</div>
+              </div>
+              <button class="btn btn-primary" type="submit" id="save-btn"><i class="bi bi-check2 me-1"></i>Save</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="card shadow-sm">
+          <div class="card-header fw-semibold"><i class="bi bi-person-lock me-2 text-primary"></i>Administrator</div>
+          <div class="card-body">
+            <p class="small text-secondary">Signed in as <strong id="who"></strong>.</p>
+            <a class="btn btn-outline-secondary" href="/change-password.html"><i class="bi bi-key me-1"></i>Change password</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=5"></script>
+  <script src="/js/ui.js?v=5"></script>
+  <script src="/js/auth.js?v=5"></script>
+  <script src="/js/layout.js?v=5"></script>
+  <script>
+    document.addEventListener('app:ready', async e => {
+      const form = document.getElementById('settings-form');
+      const btn = document.getElementById('save-btn');
+      document.getElementById('who').textContent = e.detail.me.fullName + ' (' + e.detail.me.username + ')';
+      try { UI.fillForm(form, await Api.get('/api/settings')); } catch (err) { UI.showError(err); }
+
+      form.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        UI.clearFieldErrors(form);
+        UI.setLoading(btn, true);
+        try {
+          const saved = await Api.put('/api/settings', UI.formValues(form), { silent: true });
+          UI.fillForm(form, saved);
+          UI.toast('Settings saved.', 'success');
+          document.dispatchEvent(new CustomEvent('settings:changed', { detail: saved }));
+        } catch (err) {
+          if (err.errors) UI.setFieldErrors(form, err.errors); else UI.showError(err);
+        } finally {
+          UI.setLoading(btn, false);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+# THEO TECH LTD on one server (e.g. an Oracle Cloud Always Free VM).
+#   cp .env.example .env   -> edit the passwords and SITE_ADDRESS
+#   docker compose up -d --build
+# Services: db (PostgreSQL 18, private), app (Spring Boot), web (Caddy: HTTPS + reverse proxy), backup (daily pg_dump).
+
+services:
+  db:
+    image: postgres:18
+    container_name: theotech-db
+    environment:
+      POSTGRES_DB: theo_tech
+      POSTGRES_USER: theotech
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env}
+      TZ: ${TZ:-Africa/Kigali}
+    volumes:
+      - theotech-pgdata:/var/lib/postgresql
+    # no ports: the database is reachable only by the other containers
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U theotech -d theo_tech"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: theotech-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_DB_URL: jdbc:postgresql://db:5432/theo_tech
+      APP_DB_USER: theotech
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env}
+      APP_REMEMBER_ME_KEY: ${APP_REMEMBER_ME_KEY:?set APP_REMEMBER_ME_KEY in .env}
+      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE:-true}
+      TZ: ${TZ:-Africa/Kigali}
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  web:
+    image: caddy:2
+    container_name: theotech-web
+    depends_on:
+      - app
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - theotech-caddy-data:/data
+      - theotech-caddy-config:/config
+    restart: unless-stopped
+
+  backup:
+    image: postgres:18
+    container_name: theotech-backup
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: theotech
+      PGPASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env}
+      PGDATABASE: theo_tech
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      TZ: ${TZ:-Africa/Kigali}
+    volumes:
+      - ./backups:/backups
+      - ./deploy/backup.sh:/backup.sh:ro
+    entrypoint: ["sh", "/backup.sh"]
+    restart: unless-stopped
+
+volumes:
+  theotech-pgdata:
+  theotech-caddy-data:
+  theotech-caddy-config:

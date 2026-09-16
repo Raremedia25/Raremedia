@@ -1,0 +1,12 @@
+.tooling/
+target/
+.removed-phase3/
+backups/
+uploads/
+*.log
+.env
+.git/
+.idea/
+.vscode/
+database/
+scripts/

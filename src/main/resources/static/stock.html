@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=5">
+  <script src="/js/theme.js?v=5"></script>
+</head>
+<body data-page="stock" data-title="Stock">
+  <div id="app-content" hidden>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <div class="input-group input-group-sm tt-lookup">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="search" class="form-control" id="search" placeholder="Search product or category…">
+      </div>
+      <select class="form-select form-select-sm w-auto" id="status">
+        <option value="">All products</option>
+        <option value="LOW">Low stock</option>
+        <option value="OUT_OF_STOCK">Out of stock</option>
+        <option value="AVAILABLE">Available</option>
+      </select>
+      <span class="small text-secondary" id="summary"></span>
+      <button class="btn btn-outline-secondary btn-sm ms-auto" id="refresh" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+
+    <div class="table-responsive border rounded">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr>
+          <th>Product</th>
+          <th class="d-none d-md-table-cell">Category</th>
+          <th class="text-end">Stock</th>
+          <th class="text-end">Sold</th>
+          <th class="text-end">Available</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="small text-secondary mt-2 mb-0">Stock = everything ever put on the shelf (initial stock + added stock). Available = Stock − Sold.
+      Low stock means <strong id="threshold">5</strong> units or fewer<span data-admin> (change it in Settings)</span>.</p>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=5"></script>
+  <script src="/js/ui.js?v=5"></script>
+  <script src="/js/auth.js?v=5"></script>
+  <script src="/js/layout.js?v=5"></script>
+  <script>
+    document.addEventListener('app:ready', async e => {
+      const esc = UI.escapeHtml;
+      const isAdmin = e.detail.isAdmin;
+      const rows = document.getElementById('rows');
+      const search = document.getElementById('search');
+      const status = document.getElementById('status');
+      const params = new URLSearchParams(location.search);
+      if (params.get('status')) status.value = params.get('status');
+      let products = [];
+
+      function render() {
+        const q = search.value.trim().toLowerCase();
+        const list = products.filter(p =>
+          (!q || p.name.toLowerCase().includes(q) || (p.categoryName || '').toLowerCase().includes(q)) &&
+          (!status.value || p.status === status.value));
+        rows.innerHTML = list.length ? list.map(p =>
+          '<tr data-id="' + p.id + '">' +
+            '<td><div class="d-flex align-items-center gap-2">' + UI.thumb(p) + '<span class="fw-semibold">' + esc(p.name) + '</span></div></td>' +
+            '<td class="d-none d-md-table-cell text-secondary">' + esc(p.categoryName || '') + '</td>' +
+            '<td class="text-end">' + esc(UI.number(p.initialStock)) + '</td>' +
+            '<td class="text-end">' + esc(UI.number(p.soldQuantity)) + '</td>' +
+            '<td class="text-end fs-5 fw-bold">' + esc(UI.number(p.availableStock)) + '</td>' +
+            '<td>' + UI.stockBadge(p.status) + '</td>' +
+            '<td class="text-end text-nowrap">' +
+              (isAdmin ? '<button class="btn btn-primary btn-sm" data-action="add"><i class="bi bi-plus-lg me-1"></i>Add Stock</button> ' : '') +
+              (p.availableStock > 0 ? '<a class="btn btn-outline-success btn-sm" href="/sell.html?productId=' + p.id + '" title="Sell"><i class="bi bi-cart-check"></i></a>' : '') +
+            '</td>' +
+          '</tr>').join('')
+          : '<tr><td colspan="7" class="text-center text-secondary py-4"><i class="bi bi-inbox me-2"></i>No products match</td></tr>';
+        const low = products.filter(p => p.status === 'LOW').length;
+        const out = products.filter(p => p.status === 'OUT_OF_STOCK').length;
+        document.getElementById('summary').textContent = products.length + ' products · ' + low + ' low · ' + out + ' out of stock';
+      }
+
+      async function load() {
+        try {
+          const [list, settings] = await Promise.all([Api.get('/api/products'), Api.get('/api/settings')]);
+          products = list;
+          document.getElementById('threshold').textContent = settings.lowStockThreshold;
+          render();
+        } catch (err) { UI.showError(err); }
+      }
+
+      function openAddStock(p) {
+        UI.modal({
+          title: 'Add stock — ' + p.name,
+          submitLabel: 'Add',
+          body:
+            '<div class="d-flex align-items-center gap-3 mb-3">' + UI.thumb(p, 'tt-thumb-lg') +
+              '<p class="text-secondary small mb-0">Currently <strong>' + esc(UI.number(p.availableStock)) + '</strong> available (' +
+              esc(UI.number(p.initialStock)) + ' stocked, ' + esc(UI.number(p.soldQuantity)) + ' sold).</p></div>' +
+            '<label class="form-label" for="f-qty">Quantity to add</label>' +
+            '<input class="form-control form-control-lg" id="f-qty" name="quantity" type="number" min="1" step="1" inputmode="numeric" required>',
+          onSubmit: async (values, form, handle) => {
+            const updated = await Api.post('/api/products/' + p.id + '/stock', { quantity: values.quantity }, { silent: true });
+            UI.toast('Stock updated. ' + updated.name + ' now has ' + UI.number(updated.availableStock) + ' available.', 'success');
+            handle.hide();
+            load();
+          }
+        });
+      }
+
+      rows.addEventListener('click', e => {
+        const btn = e.target.closest('[data-action=add]');
+        const tr = e.target.closest('tr[data-id]');
+        if (!btn || !tr) return;
+        const p = products.find(x => String(x.id) === tr.dataset.id);
+        if (p) openAddStock(p);
+      });
+      search.addEventListener('input', render);
+      status.addEventListener('change', render);
+      document.getElementById('refresh').addEventListener('click', load);
+      load();
+    });
+  </script>
+</body>
+</html>

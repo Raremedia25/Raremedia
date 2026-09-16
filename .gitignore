@@ -1,0 +1,16 @@
+/target/
+/.tooling/
+/uploads/
+/backups/
+*.log
+*.iml
+.idea/
+.vscode/
+.settings/
+.project
+.classpath
+*.class
+Thumbs.db
+.DS_Store
+/.removed-phase3/
+/.env

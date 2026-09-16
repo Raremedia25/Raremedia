@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reports · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=5">
+  <script src="/js/theme.js?v=5"></script>
+</head>
+<body data-page="reports" data-title="Sales Report" data-admin>
+  <div id="app-content" hidden>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 tt-no-print">
+      <div class="btn-group btn-group-sm" role="group" id="presets">
+        <button type="button" class="btn btn-outline-secondary" data-period="today">Today</button>
+        <button type="button" class="btn btn-outline-secondary" data-period="week">This week</button>
+        <button type="button" class="btn btn-outline-secondary" data-period="month">This month</button>
+        <button type="button" class="btn btn-outline-secondary" data-period="all">All time</button>
+      </div>
+      <input type="date" class="form-control form-control-sm w-auto" id="from" title="From">
+      <span class="text-secondary small">to</span>
+      <input type="date" class="form-control form-control-sm w-auto" id="to" title="To">
+      <button class="btn btn-primary btn-sm" id="run"><i class="bi bi-play-fill me-1"></i>Show</button>
+      <button class="btn btn-outline-secondary btn-sm ms-auto" id="print"><i class="bi bi-printer me-1"></i>Print</button>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <div class="fw-semibold" id="company">THEO TECH LTD</div>
+        <div class="small text-secondary">Sales report · <span id="range"></span></div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light"><tr>
+            <th>Product</th>
+            <th class="d-none d-md-table-cell">Category</th>
+            <th class="text-end">Sold</th>
+            <th class="text-end">Sales</th>
+            <th class="text-end">Remaining stock</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+          <tfoot class="table-light fw-bold"><tr>
+            <td colspan="2">TOTAL</td>
+            <td class="text-end" id="total-qty">0</td>
+            <td class="text-end tt-money" id="total-sales">RWF 0</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=5"></script>
+  <script src="/js/ui.js?v=5"></script>
+  <script src="/js/auth.js?v=5"></script>
+  <script src="/js/layout.js?v=5"></script>
+  <script>
+    document.addEventListener('app:ready', async () => {
+      const esc = UI.escapeHtml;
+      const fromInput = document.getElementById('from');
+      const toInput = document.getElementById('to');
+      const presets = document.getElementById('presets');
+
+      function markPreset(name) {
+        presets.querySelectorAll('[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === name));
+      }
+
+      async function run() {
+        const range = UI.dateRange(fromInput.value, toInput.value);
+        try {
+          const r = await Api.get('/api/reports/sales', { query: range });
+          document.getElementById('range').textContent =
+            (fromInput.value ? UI.date(fromInput.value) : 'beginning') + ' – ' + (toInput.value ? UI.date(toInput.value) : 'today');
+          const rows = document.getElementById('rows');
+          rows.innerHTML = r.rows.length ? r.rows.map(row =>
+            '<tr><td class="fw-semibold">' + esc(row.productName) + '</td>' +
+            '<td class="d-none d-md-table-cell text-secondary">' + esc(row.categoryName || '—') + '</td>' +
+            '<td class="text-end">' + esc(UI.number(row.quantitySold)) + '</td>' +
+            '<td class="text-end tt-money">' + esc(UI.money(row.totalSales)) + '</td>' +
+            '<td class="text-end">' + (row.remainingStock == null ? '<span class="text-secondary">deleted</span>' : esc(UI.number(row.remainingStock))) + '</td></tr>').join('')
+            : '<tr><td colspan="5" class="text-center text-secondary py-4"><i class="bi bi-inbox me-2"></i>No sales in this period</td></tr>';
+          document.getElementById('total-qty').textContent = UI.number(r.totalQuantity);
+          document.getElementById('total-sales').textContent = UI.money(r.totalSales);
+        } catch (err) { UI.showError(err); }
+      }
+
+      presets.addEventListener('click', e => {
+        const b = e.target.closest('[data-period]');
+        if (!b) return;
+        const d = UI.periodDates(b.dataset.period);
+        fromInput.value = d.from;
+        toInput.value = d.to;
+        markPreset(b.dataset.period);
+        run();
+      });
+      [fromInput, toInput].forEach(el => el.addEventListener('change', () => markPreset(null)));
+      document.getElementById('run').addEventListener('click', run);
+      document.getElementById('print').addEventListener('click', () => window.print());
+
+      try { const s = await Api.get('/api/settings'); document.getElementById('company').textContent = s.companyName; } catch (e) { /* keep default */ }
+      const initial = UI.periodDates('today');
+      fromInput.value = initial.from;
+      toInput.value = initial.to;
+      markPreset('today');
+      run();
+    });
+  </script>
+</body>
+</html>

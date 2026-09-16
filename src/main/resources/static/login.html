@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=5">
+  <script src="/js/theme.js?v=5"></script>
+</head>
+<body class="tt-auth-page">
+  <div class="card shadow-lg tt-auth-card">
+    <div class="card-body p-4 p-md-5">
+      <div class="mb-4">
+        <div class="tt-auth-brand text-primary fs-5"><i class="bi bi-cpu me-2"></i>THEO TECH LTD</div>
+        <div class="text-secondary small">Electronics Sales &amp; Stock Management</div>
+      </div>
+
+      <div id="login-error" class="alert alert-danger py-2" role="alert" hidden></div>
+
+      <form id="login-form" novalidate autocomplete="on">
+        <div class="mb-3">
+          <label class="form-label" for="username">Username</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input class="form-control form-control-lg" id="username" name="username" autocomplete="username" required autofocus>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input class="form-control form-control-lg" id="password" name="password" type="password" autocomplete="current-password" required>
+            <button class="btn btn-outline-secondary" type="button" id="toggle-pw" tabindex="-1" title="Show password"><i class="bi bi-eye"></i></button>
+          </div>
+        </div>
+        <div class="form-check mb-4">
+          <input class="form-check-input" type="checkbox" id="remember-me" name="remember-me" value="true">
+          <label class="form-check-label" for="remember-me">Keep me signed in on this device</label>
+        </div>
+        <button class="btn btn-primary btn-lg w-100" type="submit" id="login-btn">
+          <i class="bi bi-box-arrow-in-right me-1"></i>Sign in
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=5"></script>
+  <script src="/js/ui.js?v=5"></script>
+  <script>
+    (async function () {
+      try { await Api.get('/api/auth/csrf', { silent: true }); } catch (e) { /* shown on submit if it matters */ }
+
+      const form = document.getElementById('login-form');
+      const errorBox = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+      document.getElementById('toggle-pw').addEventListener('click', () => {
+        const pw = document.getElementById('password');
+        pw.type = pw.type === 'password' ? 'text' : 'password';
+      });
+
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        errorBox.hidden = true;
+        const username = form.username.value.trim();
+        const password = form.password.value;
+        if (!username || !password) {
+          errorBox.textContent = 'Please enter your username and password.';
+          errorBox.hidden = false;
+          return;
+        }
+        UI.setLoading(btn, true);
+        try {
+          const payload = { username, password };
+          if (form['remember-me'].checked) payload['remember-me'] = 'true';
+          const me = await Api.postForm('/api/auth/login', payload, { silent: true });
+          const next = new URLSearchParams(location.search).get('next');
+          if (me.mustChangePassword) location.replace('/change-password.html');
+          else location.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/index.html');
+        } catch (err) {
+          errorBox.textContent = Api.messageFor(err);
+          errorBox.hidden = false;
+          form.password.value = '';
+          form.password.focus();
+        } finally {
+          UI.setLoading(btn, false);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

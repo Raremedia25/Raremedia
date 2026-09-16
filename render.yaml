@@ -1,0 +1,31 @@
+# Render blueprint: https://render.com/docs/blueprint-spec
+# Creates one free web service built from the Dockerfile. The database is a free Neon PostgreSQL
+# (Render's own free database is deleted after 30 days); its connection details are entered once in the
+# Render dashboard when the blueprint is applied (sync: false = never stored in this file).
+services:
+  - type: web
+    name: theotech
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: APP_DB_URL
+        sync: false          # jdbc:postgresql://<neon-host>/neondb?sslmode=require
+      - key: APP_DB_USER
+        sync: false          # neondb_owner
+      - key: APP_DB_PASSWORD
+        sync: false
+      - key: APP_REMEMBER_ME_KEY
+        generateValue: true
+      - key: APP_COOKIE_SECURE
+        value: "true"        # Render serves HTTPS
+      - key: TZ
+        value: Africa/Kigali
+      - key: JAVA_OPTS
+        # the free instance has 512 MB: small heap, serial GC, quick JIT so start-up fits the health-check window
+        value: -Xmx280m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Dspring.jmx.enabled=false

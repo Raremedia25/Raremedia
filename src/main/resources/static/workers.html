@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workers · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=5">
+  <script src="/js/theme.js?v=5"></script>
+</head>
+<body data-page="workers" data-title="Workers" data-admin>
+  <div id="app-content" hidden>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <p class="text-secondary small mb-0 flex-grow-1">Workers can sign in, sell items and see products, stock and sales history.
+        Only you (the administrator) can change products, prices, settings and workers.</p>
+      <button class="btn btn-primary btn-sm" id="add"><i class="bi bi-person-plus me-1"></i>Add Worker</button>
+    </div>
+
+    <div class="table-responsive border rounded">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Status</th>
+          <th class="d-none d-md-table-cell">Last sign-in</th>
+          <th class="text-end">Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=5"></script>
+  <script src="/js/ui.js?v=5"></script>
+  <script src="/js/auth.js?v=5"></script>
+  <script src="/js/layout.js?v=5"></script>
+  <script>
+    document.addEventListener('app:ready', () => {
+      const esc = UI.escapeHtml;
+      const rows = document.getElementById('rows');
+      let workers = [];
+
+      function status(w) {
+        if (!w.enabled) return UI.badge('DISABLED', 'secondary');
+        if (w.locked) return UI.badge('LOCKED', 'danger');
+        return UI.badge('ACTIVE', 'success') + (w.mustChangePassword ? ' ' + UI.badge('must change password', 'warning text-dark') : '');
+      }
+
+      function render() {
+        rows.innerHTML = workers.length ? workers.map(w =>
+          '<tr data-id="' + w.id + '">' +
+            '<td class="fw-semibold">' + esc(w.fullName) + '</td>' +
+            '<td><code>' + esc(w.username) + '</code></td>' +
+            '<td>' + status(w) + '</td>' +
+            '<td class="d-none d-md-table-cell small text-secondary">' + (w.lastLoginAt ? esc(UI.dateTime(w.lastLoginAt)) : 'Never') + '</td>' +
+            '<td class="text-end text-nowrap"><div class="btn-group btn-group-sm">' +
+              '<button class="btn btn-outline-primary" data-action="edit" title="Edit"><i class="bi bi-pencil"></i></button>' +
+              (w.locked ? '<button class="btn btn-outline-warning" data-action="unlock" title="Unlock"><i class="bi bi-unlock"></i></button>' : '') +
+              '<button class="btn btn-outline-secondary" data-action="reset" title="Reset password"><i class="bi bi-key"></i></button>' +
+              '<button class="btn btn-outline-danger" data-action="delete" title="Remove"><i class="bi bi-trash"></i></button>' +
+            '</div></td>' +
+          '</tr>').join('')
+          : '<tr><td colspan="5" class="text-center text-secondary py-4"><i class="bi bi-people me-2"></i>No workers yet — click "Add Worker".</td></tr>';
+      }
+
+      async function load() {
+        try { workers = await Api.get('/api/workers'); render(); } catch (err) { UI.showError(err); }
+      }
+
+      function openAdd() {
+        UI.modal({
+          title: 'Add worker',
+          body:
+            '<div class="mb-3"><label class="form-label" for="f-name">Full name</label>' +
+              '<input class="form-control" id="f-name" name="fullName" required maxlength="120"></div>' +
+            '<div class="mb-3"><label class="form-label" for="f-user">Username</label>' +
+              '<input class="form-control" id="f-user" name="username" required maxlength="40" autocomplete="off" placeholder="e.g. alice">' +
+              '<div class="form-text">Letters, digits, dots, dashes or underscores.</div></div>' +
+            '<div class="mb-1"><label class="form-label" for="f-pass">First password</label>' +
+              '<input class="form-control" id="f-pass" name="password" type="text" required minlength="8" autocomplete="new-password">' +
+              '<div class="form-text">At least 8 characters with letters and digits. Tell the worker privately; they must choose their own password when they first sign in.</div></div>',
+          onSubmit: async (values, form, handle) => {
+            await Api.post('/api/workers', values, { silent: true });
+            UI.toast('Worker added.', 'success');
+            handle.hide();
+            load();
+          }
+        });
+      }
+
+      function openEdit(w) {
+        const m = UI.modal({
+          title: 'Edit worker — ' + w.username,
+          body:
+            '<div class="mb-3"><label class="form-label" for="f-name">Full name</label>' +
+              '<input class="form-control" id="f-name" name="fullName" required maxlength="120"></div>' +
+            '<div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="enabled" id="f-enabled">' +
+              '<label class="form-check-label" for="f-enabled">Account enabled (can sign in)</label></div>',
+          onSubmit: async (values, form, handle) => {
+            await Api.put('/api/workers/' + w.id, values, { silent: true });
+            UI.toast('Worker updated.', 'success');
+            handle.hide();
+            load();
+          }
+        });
+        UI.fillForm(m.form, { fullName: w.fullName, enabled: w.enabled });
+      }
+
+      function openReset(w) {
+        UI.modal({
+          title: 'Reset password — ' + w.fullName,
+          submitLabel: 'Reset',
+          variant: 'warning',
+          body:
+            '<label class="form-label" for="f-pass">New temporary password</label>' +
+            '<input class="form-control" id="f-pass" name="newPassword" type="text" required minlength="8" autocomplete="new-password">' +
+            '<div class="form-text">The worker will be asked to choose their own password at the next sign-in. This also unlocks the account.</div>',
+          onSubmit: async (values, form, handle) => {
+            await Api.post('/api/workers/' + w.id + '/reset-password', values, { silent: true });
+            UI.toast('Password reset.', 'success');
+            handle.hide();
+            load();
+          }
+        });
+      }
+
+      rows.addEventListener('click', async e => {
+        const btn = e.target.closest('[data-action]');
+        const tr = e.target.closest('tr[data-id]');
+        if (!btn || !tr) return;
+        const w = workers.find(x => String(x.id) === tr.dataset.id);
+        if (!w) return;
+        try {
+          switch (btn.dataset.action) {
+            case 'edit': openEdit(w); break;
+            case 'reset': openReset(w); break;
+            case 'unlock': await Api.post('/api/workers/' + w.id + '/unlock'); UI.toast('Account unlocked.', 'success'); load(); break;
+            case 'delete':
+              if (await UI.confirm('Remove worker "' + w.fullName + '"? They can no longer sign in; their sales stay in the history.', { okLabel: 'Remove' })) {
+                await Api.del('/api/workers/' + w.id);
+                UI.toast('Worker removed.', 'success');
+                load();
+              }
+              break;
+          }
+        } catch (err) { UI.showError(err); }
+      });
+      document.getElementById('add').addEventListener('click', openAdd);
+      load();
+    });
+  </script>
+</body>
+</html>

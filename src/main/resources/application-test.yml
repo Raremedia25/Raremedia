@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/theo_tech_test
+    username: postgres
+    password: ${APP_DB_PASSWORD:theotech}
+  flyway:
+    clean-disabled: false
+    clean-on-validation-error: true
+
+logging:
+  level:
+    com.theotech: INFO
+    org.hibernate.SQL: WARN

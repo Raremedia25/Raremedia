@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sales History · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=5">
+  <script src="/js/theme.js?v=5"></script>
+</head>
+<body data-page="sales" data-title="Sales History">
+  <div id="app-content" hidden>
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-4">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Sales in this view</div>
+          <div class="tt-stat-value" id="sum-count">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Items sold</div>
+          <div class="tt-stat-value" id="sum-qty">—</div>
+        </div></div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card tt-stat-card h-100 border-success"><div class="card-body">
+          <div class="tt-stat-label">Total sales</div>
+          <div class="tt-stat-value tt-money text-success" id="sum-total">—</div>
+        </div></div>
+      </div>
+    </div>
+    <div id="sales-table"></div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=5"></script>
+  <script src="/js/ui.js?v=5"></script>
+  <script src="/js/auth.js?v=5"></script>
+  <script src="/js/datatable.js?v=5"></script>
+  <script src="/js/layout.js?v=5"></script>
+  <script>
+    document.addEventListener('app:ready', () => {
+      const esc = UI.escapeHtml;
+      const params = new URLSearchParams(location.search);
+
+      const dt = new DataTable(document.getElementById('sales-table'), {
+        url: '/api/sales',
+        sort: 'soldAt,desc',
+        searchPlaceholder: 'Search product…',
+        columns: [
+          { key: 'soldAt', label: 'Date', sortable: true, className: 'text-nowrap', render: s => esc(UI.dateTime(s.soldAt)) },
+          { key: 'productName', label: 'Product', sortable: true, render: s => '<span class="fw-semibold">' + esc(s.productName) + '</span>' },
+          { key: 'quantity', label: 'Quantity', sortable: true, className: 'text-end', render: s => esc(UI.number(s.quantity)) },
+          { key: 'unitPrice', label: 'Unit price', sortable: true, className: 'text-end tt-money d-none d-md-table-cell', render: s => esc(UI.money(s.unitPrice)) },
+          { key: 'total', label: 'Total', sortable: true, className: 'text-end tt-money fw-semibold', render: s => esc(UI.money(s.total)) },
+          { key: 'soldByName', label: 'By', className: 'd-none d-lg-table-cell small text-secondary', render: s => esc(s.soldByName || '') }
+        ],
+        query: () => UI.dateRange(fromInput.value, toInput.value),
+        onLoad: data => {
+          document.getElementById('sum-count').textContent = UI.number(data.totalElements);
+          document.getElementById('sum-qty').textContent = UI.number(data.totalQuantity);
+          document.getElementById('sum-total').textContent = UI.money(data.totalAmount);
+        }
+      });
+
+      const presets = dt.addFilter(
+        '<div class="btn-group btn-group-sm" role="group">' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="today">Today</button>' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="week">This week</button>' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="month">This month</button>' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="all">All</button>' +
+        '</div>');
+      const fromInput = dt.addFilter('<input type="date" class="form-control form-control-sm w-auto" title="From">');
+      const toInput = dt.addFilter('<input type="date" class="form-control form-control-sm w-auto" title="To">');
+
+      function markPreset(name) {
+        presets.querySelectorAll('[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === name));
+      }
+      presets.addEventListener('click', e => {
+        const b = e.target.closest('[data-period]');
+        if (!b) return;
+        const dates = UI.periodDates(b.dataset.period);
+        fromInput.value = dates.from;
+        toInput.value = dates.to;
+        markPreset(b.dataset.period);
+        dt.reload(true);
+      });
+      [fromInput, toInput].forEach(el => el.addEventListener('change', () => { markPreset(null); dt.reload(true); }));
+
+      const initial = UI.periodDates(params.get('period') || 'all');
+      fromInput.value = initial.from;
+      toInput.value = initial.to;
+      markPreset(params.get('period') || 'all');
+      if (params.get('q')) {
+        const search = dt.el.querySelector('[data-role=search]');
+        search.value = params.get('q');
+        dt.state.q = params.get('q');
+      }
+      dt.reload();
+    });
+  </script>
+</body>
+</html>

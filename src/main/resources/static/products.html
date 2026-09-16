@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Products · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=5">
+  <script src="/js/theme.js?v=5"></script>
+</head>
+<body data-page="products" data-title="Products">
+  <div id="app-content" hidden>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <div class="input-group input-group-sm tt-lookup">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="search" class="form-control" id="search" placeholder="Search by product name or category…" autofocus>
+      </div>
+      <select class="form-select form-select-sm w-auto" id="category-filter"></select>
+      <button class="btn btn-outline-secondary btn-sm" id="manage-categories" data-admin><i class="bi bi-tags me-1"></i>Categories</button>
+      <div class="ms-auto d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm" id="refresh" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+        <button class="btn btn-primary btn-sm" id="add" data-admin><i class="bi bi-plus-lg me-1"></i>Add Product</button>
+      </div>
+    </div>
+
+    <div class="table-responsive border rounded">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr>
+          <th>Product</th>
+          <th class="d-none d-md-table-cell">Category</th>
+          <th class="text-end">Price</th>
+          <th class="text-end d-none d-lg-table-cell">Stock</th>
+          <th class="text-end d-none d-lg-table-cell">Sold</th>
+          <th class="text-end">Available</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="small text-secondary mt-2" id="count"></div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=5"></script>
+  <script src="/js/ui.js?v=5"></script>
+  <script src="/js/auth.js?v=5"></script>
+  <script src="/js/layout.js?v=5"></script>
+  <script>
+    document.addEventListener('app:ready', async e => {
+      const esc = UI.escapeHtml;
+      const isAdmin = e.detail.isAdmin;
+      const rows = document.getElementById('rows');
+      const search = document.getElementById('search');
+      const categoryFilter = document.getElementById('category-filter');
+      const params = new URLSearchParams(location.search);
+      let products = [];
+      let categories = [];
+
+      // ---- data ------------------------------------------------------------------------------
+
+      async function loadCategories() {
+        categories = await Api.get('/api/categories');
+        const v = categoryFilter.value || params.get('categoryId') || '';
+        categoryFilter.innerHTML = UI.options(categories.map(c => ({ value: c.id, label: c.name })), v, 'All categories');
+      }
+
+      async function loadProducts() {
+        try {
+          products = await Api.get('/api/products', { query: { q: search.value.trim(), categoryId: categoryFilter.value } });
+          render();
+        } catch (err) { UI.showError(err); }
+      }
+
+      function actions(p) {
+        return '<div class="btn-group btn-group-sm">' +
+          '<button class="btn btn-outline-secondary" data-action="view" title="View"><i class="bi bi-eye"></i></button>' +
+          (isAdmin ? '<button class="btn btn-outline-primary" data-action="edit" title="Edit"><i class="bi bi-pencil"></i></button>' +
+                     '<button class="btn btn-outline-secondary" data-action="image" title="Picture"><i class="bi bi-camera"></i></button>' +
+                     '<button class="btn btn-outline-success" data-action="stock" title="Add stock"><i class="bi bi-plus-lg"></i></button>' +
+                     '<button class="btn btn-outline-danger" data-action="delete" title="Delete"><i class="bi bi-trash"></i></button>' : '') +
+          (p.availableStock > 0 ? '<a class="btn btn-success" href="/sell.html?productId=' + p.id + '" title="Sell"><i class="bi bi-cart-check"></i></a>' : '') +
+        '</div>';
+      }
+
+      function render() {
+        rows.innerHTML = products.length ? products.map(p =>
+          '<tr data-id="' + p.id + '">' +
+            '<td><div class="d-flex align-items-center gap-2">' + UI.thumb(p) +
+              '<div><div class="fw-semibold">' + esc(p.name) + '</div><div class="small text-secondary d-md-none">' + esc(p.categoryName || '') + '</div></div></div></td>' +
+            '<td class="d-none d-md-table-cell text-secondary">' + esc(p.categoryName || '') + '</td>' +
+            '<td class="text-end tt-money">' + esc(UI.money(p.price)) + '</td>' +
+            '<td class="text-end d-none d-lg-table-cell">' + esc(UI.number(p.initialStock)) + '</td>' +
+            '<td class="text-end d-none d-lg-table-cell">' + esc(UI.number(p.soldQuantity)) + '</td>' +
+            '<td class="text-end fw-bold">' + esc(UI.number(p.availableStock)) + '</td>' +
+            '<td>' + UI.stockBadge(p.status) + '</td>' +
+            '<td class="text-end text-nowrap">' + actions(p) + '</td>' +
+          '</tr>').join('')
+          : '<tr><td colspan="8" class="text-center text-secondary py-4"><i class="bi bi-inbox me-2"></i>No products' +
+            (search.value || categoryFilter.value ? ' match your search' : (isAdmin ? ' yet — click "Add Product" to create the first one' : ' yet')) + '</td></tr>';
+        document.getElementById('count').textContent = products.length + ' product' + (products.length === 1 ? '' : 's');
+      }
+
+      // ---- add / edit ------------------------------------------------------------------------
+
+      function formHtml(p) {
+        return (
+          '<div class="mb-3"><label class="form-label" for="f-name">Product name</label>' +
+            '<input class="form-control" id="f-name" name="name" required maxlength="120" placeholder="e.g. Samsung Charger"></div>' +
+          '<div class="mb-3" data-error-anchor><label class="form-label" for="f-category">Category</label>' +
+            '<div class="input-group">' +
+              '<select class="form-select" id="f-category" name="categoryId" required>' + UI.options(categories.map(c => ({ value: c.id, label: c.name })), p ? p.categoryId : '', 'Select…') + '</select>' +
+              '<button class="btn btn-outline-secondary" type="button" data-role="new-category" title="New category"><i class="bi bi-plus-lg"></i></button>' +
+            '</div>' +
+            '<div class="input-group mt-2" data-role="new-category-row" hidden>' +
+              '<input class="form-control" data-role="new-category-name" placeholder="New category name" maxlength="60">' +
+              '<button class="btn btn-primary" type="button" data-role="save-category">Add</button>' +
+            '</div></div>' +
+          '<div class="row g-3">' +
+            '<div class="col-sm-6"><label class="form-label" for="f-price">Price (RWF)</label>' +
+              '<input class="form-control" id="f-price" name="price" type="number" min="0" step="1" inputmode="numeric" required></div>' +
+            '<div class="col-sm-6"><label class="form-label" for="f-stock">' + (p ? 'Stock (total put on shelf)' : 'Initial stock') + '</label>' +
+              '<input class="form-control" id="f-stock" name="initialStock" type="number" min="0" step="1" inputmode="numeric" value="0" required>' +
+              (p ? '<div class="form-text">Sold so far: ' + esc(UI.number(p.soldQuantity)) + '. To receive more units use "Add stock" instead.</div>' : '') +
+            '</div>' +
+          '</div>' +
+          (p ? '' : '<div class="mt-3"><label class="form-label" for="f-file">Picture <span class="text-secondary">(optional)</span></label>' +
+            '<input class="form-control" id="f-file" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif">' +
+            '<div class="form-text">JPEG, PNG, WebP or GIF, up to 2 MB.</div></div>'));
+      }
+
+      function openForm(p) {
+        const m = UI.modal({
+          title: p ? 'Edit product' : 'Add product',
+          body: formHtml(p),
+          onSubmit: async (values, form, handle) => {
+            delete values.file;
+            values.categoryId = values.categoryId ? Number(values.categoryId) : null;
+            if (p) {
+              await Api.put('/api/products/' + p.id, values, { silent: true });
+              UI.toast('Product updated.', 'success');
+            } else {
+              const created = await Api.post('/api/products', values, { silent: true });
+              const fileInput = form.querySelector('[name=file]');
+              if (fileInput && fileInput.files[0]) {
+                const fd = new FormData();
+                fd.append('file', fileInput.files[0]);
+                try { await Api.upload('/api/products/' + created.id + '/image', fd, { silent: true }); }
+                catch (err) { UI.toast('Product added, but the picture was rejected: ' + Api.messageFor(err), 'warning'); }
+              }
+              UI.toast('Product added.', 'success');
+            }
+            handle.hide();
+            loadCategories().then(loadProducts);
+          }
+        });
+        if (p) UI.fillForm(m.form, { name: p.name, categoryId: p.categoryId, price: p.price, initialStock: p.initialStock });
+
+        const row = m.el.querySelector('[data-role=new-category-row]');
+        m.el.querySelector('[data-role=new-category]').addEventListener('click', () => { row.hidden = !row.hidden; if (!row.hidden) row.querySelector('input').focus(); });
+        m.el.querySelector('[data-role=save-category]').addEventListener('click', async () => {
+          const name = m.el.querySelector('[data-role=new-category-name]').value.trim();
+          if (!name) return;
+          try {
+            const c = await Api.post('/api/categories', { name }, { silent: true });
+            await loadCategories();
+            const sel = m.form.querySelector('[name=categoryId]');
+            sel.innerHTML = UI.options(categories.map(x => ({ value: x.id, label: x.name })), c.id, 'Select…');
+            row.hidden = true;
+          } catch (err) { m.setError(Api.messageFor(err)); }
+        });
+      }
+
+      // ---- picture ---------------------------------------------------------------------------
+
+      function openImage(p) {
+        const m = UI.modal({
+          title: 'Picture — ' + p.name,
+          submitLabel: 'Upload',
+          body:
+            '<div class="text-center mb-3">' + UI.thumb(p, 'tt-thumb-lg') + '</div>' +
+            '<input class="form-control" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>' +
+            '<div class="form-text">JPEG, PNG, WebP or GIF, up to 2 MB. A phone photo works fine.</div>' +
+            (p.imageUrl ? '<button type="button" class="btn btn-outline-danger btn-sm mt-3" data-role="remove"><i class="bi bi-trash me-1"></i>Remove picture</button>' : ''),
+          onSubmit: async (values, form, handle) => {
+            const file = form.querySelector('[name=file]').files[0];
+            if (!file) { UI.setFieldErrors(form, { file: 'required' }); return; }
+            const fd = new FormData();
+            fd.append('file', file);
+            await Api.upload('/api/products/' + p.id + '/image', fd, { silent: true });
+            UI.toast('Picture saved.', 'success');
+            handle.hide();
+            loadProducts();
+          }
+        });
+        const remove = m.el.querySelector('[data-role=remove]');
+        if (remove) remove.addEventListener('click', async () => {
+          try { await Api.del('/api/products/' + p.id + '/image'); UI.toast('Picture removed.', 'success'); m.hide(); loadProducts(); }
+          catch (err) { m.setError(Api.messageFor(err)); }
+        });
+      }
+
+      // ---- view / stock / categories ---------------------------------------------------------
+
+      function openView(p) {
+        UI.modal({
+          title: p.name,
+          noFooter: true,
+          body:
+            '<div class="row g-3"><div class="col-sm-5 text-center">' + UI.thumb(p, 'tt-thumb-xl') + '</div>' +
+            '<div class="col-sm-7"><dl class="row mb-0">' +
+              '<dt class="col-6">Category</dt><dd class="col-6">' + esc(p.categoryName || '—') + '</dd>' +
+              '<dt class="col-6">Price</dt><dd class="col-6 tt-money">' + esc(UI.money(p.price)) + '</dd>' +
+              '<dt class="col-6">Stock (total)</dt><dd class="col-6">' + esc(UI.number(p.initialStock)) + '</dd>' +
+              '<dt class="col-6">Sold</dt><dd class="col-6">' + esc(UI.number(p.soldQuantity)) + '</dd>' +
+              '<dt class="col-6">Available</dt><dd class="col-6 fw-bold">' + esc(UI.number(p.availableStock)) + '</dd>' +
+              '<dt class="col-6">Status</dt><dd class="col-6">' + UI.stockBadge(p.status) + '</dd>' +
+              '<dt class="col-6">Last updated</dt><dd class="col-6 small">' + esc(UI.dateTime(p.updatedAt)) + '</dd>' +
+            '</dl></div></div>' +
+            '<div class="d-flex gap-2 mt-3">' +
+              (p.availableStock > 0 ? '<a class="btn btn-success btn-sm" href="/sell.html?productId=' + p.id + '"><i class="bi bi-cart-check me-1"></i>Sell</a>' : '') +
+              '<a class="btn btn-outline-secondary btn-sm" href="/sales.html?q=' + encodeURIComponent(p.name) + '"><i class="bi bi-receipt me-1"></i>Sales of this product</a>' +
+            '</div>'
+        });
+      }
+
+      function openAddStock(p) {
+        UI.modal({
+          title: 'Add stock — ' + p.name,
+          submitLabel: 'Add',
+          body:
+            '<p class="text-secondary small mb-3">Currently <strong>' + esc(UI.number(p.availableStock)) + '</strong> available.</p>' +
+            '<label class="form-label" for="f-qty">Quantity to add</label>' +
+            '<input class="form-control form-control-lg" id="f-qty" name="quantity" type="number" min="1" step="1" inputmode="numeric" required>',
+          onSubmit: async (values, form, handle) => {
+            const updated = await Api.post('/api/products/' + p.id + '/stock', { quantity: values.quantity }, { silent: true });
+            UI.toast(updated.name + ' now has ' + UI.number(updated.availableStock) + ' available.', 'success');
+            handle.hide();
+            loadProducts();
+          }
+        });
+      }
+
+      function openCategories() {
+        const m = UI.modal({
+          title: 'Categories',
+          noFooter: true,
+          body:
+            '<div class="input-group mb-3"><input class="form-control" data-role="cat-name" placeholder="New category name" maxlength="60">' +
+              '<button class="btn btn-primary" type="button" data-role="cat-add">Add</button></div>' +
+            '<ul class="list-group" data-role="cat-list"></ul>'
+        });
+        const list = m.el.querySelector('[data-role=cat-list]');
+        const renderList = () => {
+          list.innerHTML = categories.map(c =>
+            '<li class="list-group-item d-flex align-items-center gap-2" data-id="' + c.id + '">' +
+              '<span class="flex-grow-1">' + esc(c.name) + '</span>' +
+              '<span class="badge text-bg-light text-secondary border">' + esc(UI.number(c.productCount)) + ' product' + (c.productCount === 1 ? '' : 's') + '</span>' +
+              '<button class="btn btn-outline-danger btn-sm" data-role="cat-del"' + (c.productCount > 0 ? ' disabled title="Still used by products"' : ' title="Delete"') + '><i class="bi bi-trash"></i></button>' +
+            '</li>').join('');
+        };
+        renderList();
+        m.el.querySelector('[data-role=cat-add]').addEventListener('click', async () => {
+          const input = m.el.querySelector('[data-role=cat-name]');
+          if (!input.value.trim()) return;
+          try { await Api.post('/api/categories', { name: input.value.trim() }, { silent: true }); input.value = ''; await loadCategories(); renderList(); }
+          catch (err) { m.setError(Api.messageFor(err)); }
+        });
+        list.addEventListener('click', async e => {
+          const btn = e.target.closest('[data-role=cat-del]');
+          const li = e.target.closest('li[data-id]');
+          if (!btn || !li) return;
+          try { await Api.del('/api/categories/' + li.dataset.id, { silent: true }); await loadCategories(); renderList(); }
+          catch (err) { m.setError(Api.messageFor(err)); }
+        });
+      }
+
+      // ---- wiring ----------------------------------------------------------------------------
+
+      rows.addEventListener('click', async e => {
+        const btn = e.target.closest('[data-action]');
+        const tr = e.target.closest('tr[data-id]');
+        if (!btn || !tr) return;
+        const p = products.find(x => String(x.id) === tr.dataset.id);
+        if (!p) return;
+        switch (btn.dataset.action) {
+          case 'view': openView(p); break;
+          case 'edit': openForm(p); break;
+          case 'image': openImage(p); break;
+          case 'stock': openAddStock(p); break;
+          case 'delete':
+            if (await UI.confirm('Delete "' + p.name + '"? Its sales history is kept.', { okLabel: 'Delete' })) {
+              try { await Api.del('/api/products/' + p.id); UI.toast('Product deleted.', 'success'); loadCategories().then(loadProducts); }
+              catch (err) { UI.showError(err); }
+            }
+            break;
+        }
+      });
+      let timer;
+      search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(loadProducts, 250); });
+      categoryFilter.addEventListener('change', loadProducts);
+      document.getElementById('refresh').addEventListener('click', loadProducts);
+      const addBtn = document.getElementById('add');
+      if (addBtn) addBtn.addEventListener('click', () => openForm(null));
+      const catBtn = document.getElementById('manage-categories');
+      if (catBtn) catBtn.addEventListener('click', openCategories);
+
+      try { await loadCategories(); } catch (err) { UI.showError(err); }
+      await loadProducts();
+      if (params.get('add') === '1' && isAdmin) openForm(null);
+    });
+  </script>
+</body>
+</html>
