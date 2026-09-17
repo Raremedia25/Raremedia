@@ -119,6 +119,14 @@ Everything lives under the project folder; nothing is installed system-wide.
 
 Environment overrides: `APP_DB_PASSWORD` (default `theotech`), `APP_REMEMBER_ME_KEY`.
 
+## Internet address from the shop PC (no account needed)
+
+`scripts\serve.cmd` (and the start-up shortcut) also opens a Cloudflare quick tunnel with
+`.tooling\cloudflared\cloudflared.exe`, so the shop is reachable from anywhere while the PC is on. The current
+address is written to `logs\public-link.txt` and to **"THEO TECH link.txt" on the Desktop**; `scripts\public-link.cmd`
+shows it and opens it. The address changes at every restart of the PC or the tunnel; for a fixed address use
+Render + Neon (`RENDER.md`) or a server (`DEPLOY.md`).
+
 ## Running with Docker (other machines)
 
     APP_DB_PASSWORD=strong-password docker compose up -d --build

@@ -36,6 +36,8 @@ rem a bigger default heap made the JVM refuse to start ("Failed to allocate ... 
 set "JAVA_OPTS=-Xmx320m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=64m -XX:TieredStopAtLevel=1 -XX:-UsePerfData -Djava.awt.headless=true"
 
 cd /d "%THEO_ROOT%"
+rem internet address (Cloudflare quick tunnel): waits for the app, then writes the link to the Desktop file
+if exist "%THEO_ROOT%\.tooling\cloudflared\cloudflared.exe" start "" /min cmd /c "%~dp0tunnel.cmd"
 echo [serve] %date% %time% starting %JAR% >> "%LOG%"
 "%JAVA%" %JAVA_OPTS% -jar "%JAR%" --spring.profiles.active=dev >> "%LOG%" 2>&1
 echo [serve] %date% %time% java exited with code %errorlevel% >> "%LOG%"
