@@ -7,14 +7,14 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
   <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="/css/app.css?v=5">
-  <script src="/js/theme.js?v=5"></script>
+  <link rel="stylesheet" href="/css/app.css?v=7">
+  <script src="/js/theme.js?v=7"></script>
 </head>
 <body data-page="settings" data-title="Settings" data-admin>
   <div id="app-content" hidden>
     <div class="row g-3">
-      <div class="col-lg-7">
-        <div class="card shadow-sm">
+      <div class="col-lg-6">
+        <div class="card shadow-sm mb-3">
           <div class="card-header fw-semibold"><i class="bi bi-shop me-2 text-primary"></i>Shop</div>
           <div class="card-body">
             <form id="settings-form" novalidate>
@@ -40,8 +40,7 @@
             </form>
           </div>
         </div>
-      </div>
-      <div class="col-lg-5">
+
         <div class="card shadow-sm">
           <div class="card-header fw-semibold"><i class="bi bi-person-lock me-2 text-primary"></i>Administrator</div>
           <div class="card-body">
@@ -50,14 +49,82 @@
           </div>
         </div>
       </div>
+
+      <div class="col-lg-6" id="email">
+        <div class="card shadow-sm">
+          <div class="card-header d-flex align-items-center">
+            <span class="fw-semibold"><i class="bi bi-envelope me-2 text-primary"></i>E-mail reports</span>
+            <span class="badge ms-auto" id="mail-status"></span>
+          </div>
+          <div class="card-body">
+            <form id="mail-form" novalidate>
+              <div class="mb-3">
+                <label class="form-label" for="reportEmail">Send reports to</label>
+                <input class="form-control" id="reportEmail" name="reportEmail" type="text" maxlength="300" placeholder="you@example.com" autocomplete="email">
+                <div class="form-text">Your e-mail address. Several addresses: separate them with commas.</div>
+              </div>
+              <div class="row g-3 mb-3 align-items-end">
+                <div class="col-sm-7">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="dailyReportEnabled" name="dailyReportEnabled">
+                    <label class="form-check-label" for="dailyReportEnabled">Send the day's report automatically every day</label>
+                  </div>
+                  <div class="form-text" id="last-sent"></div>
+                </div>
+                <div class="col-sm-5">
+                  <label class="form-label" for="dailyReportTime">At (shop time)</label>
+                  <input class="form-control" id="dailyReportTime" name="dailyReportTime" type="time" required>
+                </div>
+              </div>
+              <div class="alert alert-light border small mb-3">
+                The daily report covers that day's sales: items sold, total, paid / not paid, who still owes, and low stock.
+                The server must be running at that time (if it comes back later the same day, the report is sent then).
+              </div>
+
+              <div class="fw-semibold mb-2"><i class="bi bi-hdd-network me-1"></i>Mail account (sends the e-mails)</div>
+              <div class="row g-3 mb-3">
+                <div class="col-sm-8">
+                  <label class="form-label" for="mailHost">SMTP server</label>
+                  <input class="form-control" id="mailHost" name="mailHost" maxlength="200" placeholder="smtp.gmail.com">
+                </div>
+                <div class="col-sm-4">
+                  <label class="form-label" for="mailPort">Port</label>
+                  <input class="form-control" id="mailPort" name="mailPort" type="number" min="1" max="65535" value="587" required>
+                </div>
+                <div class="col-sm-6">
+                  <label class="form-label" for="mailUsername">Username</label>
+                  <input class="form-control" id="mailUsername" name="mailUsername" maxlength="200" placeholder="shop@gmail.com" autocomplete="off">
+                </div>
+                <div class="col-sm-6">
+                  <label class="form-label" for="mailPassword">Password <span class="text-secondary fw-normal small" id="pw-hint"></span></label>
+                  <input class="form-control" id="mailPassword" name="mailPassword" type="password" maxlength="200" autocomplete="new-password" placeholder="app password">
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="mailFrom">Sender address <span class="text-secondary fw-normal">(optional, defaults to the username)</span></label>
+                  <input class="form-control" id="mailFrom" name="mailFrom" maxlength="200" placeholder="shop@gmail.com">
+                </div>
+              </div>
+              <div class="form-text mb-3">
+                Gmail: server <code>smtp.gmail.com</code>, port <code>587</code>, username = your Gmail address, password = an
+                <strong>App password</strong> (Google Account → Security → 2-Step Verification → App passwords), not your normal password.
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-primary" type="submit" id="mail-save"><i class="bi bi-check2 me-1"></i>Save</button>
+                <button class="btn btn-outline-secondary" type="button" id="mail-test"><i class="bi bi-send me-1"></i>Send test e-mail</button>
+                <button class="btn btn-outline-primary" type="button" id="mail-now"><i class="bi bi-envelope-paper me-1"></i>Send today's report now</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-  <script src="/js/api.js?v=5"></script>
-  <script src="/js/ui.js?v=5"></script>
-  <script src="/js/auth.js?v=5"></script>
-  <script src="/js/layout.js?v=5"></script>
+  <script src="/js/api.js?v=7"></script>
+  <script src="/js/ui.js?v=7"></script>
+  <script src="/js/auth.js?v=7"></script>
+  <script src="/js/layout.js?v=7"></script>
   <script>
     document.addEventListener('app:ready', async e => {
       const form = document.getElementById('settings-form');
@@ -80,6 +147,54 @@
           UI.setLoading(btn, false);
         }
       });
+
+      // ---- e-mail reports --------------------------------------------------------------------
+      const mailForm = document.getElementById('mail-form');
+      const mailSave = document.getElementById('mail-save');
+      const mailTest = document.getElementById('mail-test');
+      const mailNow = document.getElementById('mail-now');
+
+      function showMail(m) {
+        UI.fillForm(mailForm, { reportEmail: m.reportEmail, dailyReportEnabled: m.dailyReportEnabled, dailyReportTime: m.dailyReportTime,
+          mailHost: m.mailHost, mailPort: m.mailPort, mailUsername: m.mailUsername, mailFrom: m.mailFrom, mailPassword: '' });
+        document.getElementById('pw-hint').textContent = m.mailPasswordSet ? '(saved — leave empty to keep it)' : '';
+        document.getElementById('mailPassword').placeholder = m.mailPasswordSet ? '••••••••' : 'app password';
+        const status = document.getElementById('mail-status');
+        status.textContent = m.mailConfigured ? (m.reportEmail ? 'Ready' : 'Add an address') : 'Not set up';
+        status.className = 'badge ms-auto ' + (m.mailConfigured && m.reportEmail ? 'text-bg-success' : 'text-bg-warning text-dark');
+        document.getElementById('last-sent').textContent = m.lastReportSentDate ? 'Last daily report sent on ' + UI.date(m.lastReportSentDate) + '.' : '';
+      }
+      try { showMail(await Api.get('/api/settings/mail')); } catch (err) { UI.showError(err); }
+
+      mailForm.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        UI.clearFieldErrors(mailForm);
+        UI.setLoading(mailSave, true);
+        try {
+          showMail(await Api.put('/api/settings/mail', UI.formValues(mailForm), { silent: true }));
+          UI.toast('E-mail settings saved.', 'success');
+        } catch (err) {
+          if (err.errors) UI.setFieldErrors(mailForm, err.errors); else UI.showError(err);
+        } finally { UI.setLoading(mailSave, false); }
+      });
+
+      mailTest.addEventListener('click', async () => {
+        UI.setLoading(mailTest, true);
+        try { const r = await Api.post('/api/settings/mail/test', null, { silent: true }); UI.toast('Test e-mail sent to ' + r.sentTo + '. Check the inbox (and spam).', 'success', 6000); }
+        catch (err) { UI.showError(err); }
+        finally { UI.setLoading(mailTest, false); }
+      });
+
+      mailNow.addEventListener('click', async () => {
+        UI.setLoading(mailNow, true);
+        try {
+          const r = await Api.post('/api/reports/sales/email?' + new URLSearchParams(UI.period('today')).toString(), null, { silent: true });
+          UI.toast("Today's report sent to " + r.sentTo, 'success', 6000);
+        } catch (err) { UI.showError(err); }
+        finally { UI.setLoading(mailNow, false); }
+      });
+
+      if (location.hash === '#email') document.getElementById('email').scrollIntoView();
     });
   </script>
 </body>

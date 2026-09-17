@@ -14,6 +14,8 @@ window.UI = (function () {
     positive: 'Must be at least 1',
     belowSold: 'Stock cannot be lower than the quantity already sold',
     username: '3-40 characters: letters, digits, dots, dashes or underscores',
+    email: 'Enter a valid e-mail address (several: separate with commas)',
+    time: 'Use the 24-hour form HH:MM, e.g. 20:00',
     imageType: 'Only JPEG, PNG, WebP or GIF pictures are accepted',
     imageSize: 'The picture must be smaller than 2 MB',
     passwordLength: 'Password must be between 8 and 100 characters',
@@ -209,6 +211,16 @@ window.UI = (function () {
     return '<span class="badge text-bg-' + s[1] + '">' + escapeHtml(s[0]) + '</span>';
   }
 
+  /** PAID / NOT PAID badge for a sale. */
+  function paidBadge(paid) {
+    return paid ? '<span class="badge text-bg-success">PAID</span>' : '<span class="badge text-bg-danger">NOT PAID</span>';
+  }
+
+  /** Opens the printable receipt (by receipt number, e.g. "000123") in a new tab; autoPrint opens the print dialog. */
+  function openReceipt(receiptNo, autoPrint) {
+    window.open('/receipt.html?no=' + encodeURIComponent(receiptNo) + (autoPrint ? '&print=1' : ''), '_blank');
+  }
+
   // ---- date periods (local time; the browser runs in the shop's time zone) ---------------------
 
   function ymd(d) {
@@ -296,6 +308,6 @@ window.UI = (function () {
     return parts.join('');
   }
 
-  return { escapeHtml, toast, confirm, modal, formValues, fillForm, money, number, date, dateTime, time, badge, stockBadge, thumb,
-           options, clearFieldErrors, setFieldErrors, setLoading, showError, periodDates, dateRange, period, VALIDATION };
+  return { escapeHtml, toast, confirm, modal, formValues, fillForm, money, number, date, dateTime, time, badge, stockBadge, paidBadge,
+           openReceipt, thumb, options, clearFieldErrors, setFieldErrors, setLoading, showError, periodDates, dateRange, period, VALIDATION };
 })();

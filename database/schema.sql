@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict UlXqfUosRYgSOtbjpT7LDRwM0MxPwpsb880ok4fAgtAwDy09P9m8w5ubqwwdNfs
+\restrict 7eIeNodP6ka6Q0JyWBu6Imxn2KieMzi4I3xyAj40sAepvFRM5Tm9xe54ThgVKr3
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -157,6 +157,18 @@ CREATE TABLE public.persistent_logins (
 
 
 --
+-- Name: product_images; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.product_images (
+    product_id bigint NOT NULL,
+    content bytea NOT NULL,
+    content_type text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: products; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -173,6 +185,7 @@ CREATE TABLE public.products (
     updated_by bigint,
     initial_stock integer DEFAULT 0 NOT NULL,
     sold_quantity integer DEFAULT 0 NOT NULL,
+    image_updated_at timestamp with time zone,
     CONSTRAINT ck_products_not_oversold CHECK ((sold_quantity <= initial_stock)),
     CONSTRAINT products_initial_stock_check CHECK ((initial_stock >= 0)),
     CONSTRAINT products_retail_price_check CHECK ((price >= (0)::numeric)),
@@ -197,6 +210,18 @@ CREATE SEQUENCE public.products_id_seq
 --
 
 ALTER SEQUENCE public.products_id_seq OWNED BY public.products.id;
+
+
+--
+-- Name: receipt_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.receipt_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
 
 --
@@ -255,6 +280,10 @@ CREATE TABLE public.sales (
     total numeric(14,2) NOT NULL,
     sold_at timestamp with time zone DEFAULT now() NOT NULL,
     sold_by bigint,
+    paid boolean DEFAULT true NOT NULL,
+    paid_at timestamp with time zone,
+    customer_name text,
+    receipt_no bigint NOT NULL,
     CONSTRAINT sales_quantity_check CHECK ((quantity > 0)),
     CONSTRAINT sales_total_check CHECK ((total >= (0)::numeric)),
     CONSTRAINT sales_unit_price_check CHECK ((unit_price >= (0)::numeric))
@@ -447,6 +476,14 @@ ALTER TABLE ONLY public.persistent_logins
 
 
 --
+-- Name: product_images product_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_images
+    ADD CONSTRAINT product_images_pkey PRIMARY KEY (product_id);
+
+
+--
 -- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -531,10 +568,24 @@ CREATE INDEX ix_sales_product ON public.sales USING btree (product_id);
 
 
 --
+-- Name: ix_sales_receipt; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_sales_receipt ON public.sales USING btree (receipt_no);
+
+
+--
 -- Name: ix_sales_sold_at; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX ix_sales_sold_at ON public.sales USING btree (sold_at DESC, id DESC);
+
+
+--
+-- Name: ix_sales_unpaid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_sales_unpaid ON public.sales USING btree (sold_at DESC) WHERE (paid = false);
 
 
 --
@@ -614,6 +665,14 @@ ALTER TABLE ONLY public.categories
 
 ALTER TABLE ONLY public.categories
     ADD CONSTRAINT categories_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id);
+
+
+--
+-- Name: product_images product_images_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_images
+    ADD CONSTRAINT product_images_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
 
 
 --
@@ -724,5 +783,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UlXqfUosRYgSOtbjpT7LDRwM0MxPwpsb880ok4fAgtAwDy09P9m8w5ubqwwdNfs
+\unrestrict 7eIeNodP6ka6Q0JyWBu6Imxn2KieMzi4I3xyAj40sAepvFRM5Tm9xe54ThgVKr3
 

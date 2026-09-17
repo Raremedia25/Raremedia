@@ -21,6 +21,14 @@ unless asked. Prefer removing over adding.
   (`ProductRepository.lockActiveById`) and writes the `Sale` in the same transaction. The DB check
   `sold_quantity <= initial_stock` is the last line of defence.
 - **Money**: `NUMERIC(14,2)` / `BigDecimal`, never `double`. A sale snapshots `unit_price` and `total`.
+  One `sales` row per item; the items of one ticket share `receipt_no` (sequence `receipt_seq`, V7) and are
+  sold in one transaction (`SaleService.sell` locks products in ascending id order). The only mutable thing on a
+  line is `paid`/`paid_at`, always toggled for the whole receipt (`setReceiptPaid`); an unpaid sale needs
+  `customer_name`. `Sale.receiptNo()` is the zero-padded number printed by `receipt.html?no=`.
+- **E-mail** goes through `common.mail.EmailSender` (SMTP impl reads `mail.*` from settings on every send; mock it
+  with `@MockitoBean` in ITs). Reports are rendered by `reports.service.ReportHtml`; `DailyReportScheduler` runs
+  every minute and sends once per day at/after `report.daily_time` (guard: `report.last_sent_date`).
+  `ReportService.build()` is unguarded on purpose (the scheduler has no user); `sales()` is the admin-only façade.
 - **API envelope**: `ApiResponse.ok(data)`; errors are `AppException` subclasses with a stable `code`.
   Bean-validation messages are short keys (`required`, `min`, `positive`, `belowSold`…) that `js/ui.js` turns into text.
 - **Two levels only.** Admin-only service methods carry `@PreAuthorize("hasRole('ADMIN')")` (product/category changes,

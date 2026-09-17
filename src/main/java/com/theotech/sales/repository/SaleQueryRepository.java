@@ -19,8 +19,8 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Sales history with optional date range and product-name search, plus the totals of the same filter
- * so the page footer ("20 items, RWF 300,000") always matches the rows.
+ * Sales history with optional date range, paid/unpaid filter and product-name search, plus the totals of
+ * the same filter so the page footer ("20 items, RWF 300,000, RWF 40,000 not paid") always matches the rows.
  */
 @Repository
 public class SaleQueryRepository {
@@ -31,16 +31,18 @@ public class SaleQueryRepository {
             "productName", "s.productName",
             "quantity", "s.quantity",
             "unitPrice", "s.unitPrice",
-            "total", "s.total");
+            "total", "s.total",
+            "paid", "s.paid",
+            "customerName", "s.customerName");
 
-    public record Totals(long quantity, BigDecimal amount) {
+    public record Totals(long quantity, BigDecimal amount, long unpaidCount, BigDecimal unpaidAmount) {
     }
 
     @PersistenceContext
     private EntityManager em;
 
-    public Page<Sale> find(Instant from, Instant to, String q, Pageable pageable) {
-        Filter f = filter(from, to, q);
+    public Page<Sale> find(Instant from, Instant to, String q, Boolean paid, Pageable pageable) {
+        Filter f = filter(from, to, q, paid);
         TypedQuery<Long> count = em.createQuery("select count(s) from Sale s" + f.where, Long.class);
         f.params.forEach(count::setParameter);
         long total = count.getSingleResult();
@@ -52,19 +54,21 @@ public class SaleQueryRepository {
         return new PageImpl<>(select.getResultList(), pageable, total);
     }
 
-    public Totals totals(Instant from, Instant to, String q) {
-        Filter f = filter(from, to, q);
+    public Totals totals(Instant from, Instant to, String q, Boolean paid) {
+        Filter f = filter(from, to, q, paid);
         TypedQuery<Object[]> query = em.createQuery(
-                "select coalesce(sum(s.quantity), 0), coalesce(sum(s.total), 0) from Sale s" + f.where, Object[].class);
+                "select coalesce(sum(s.quantity), 0), coalesce(sum(s.total), 0), " +
+                "coalesce(sum(case when s.paid = false then 1 end), 0), coalesce(sum(case when s.paid = false then s.total end), 0) " +
+                "from Sale s" + f.where, Object[].class);
         f.params.forEach(query::setParameter);
         Object[] row = query.getSingleResult();
-        return new Totals(((Number) row[0]).longValue(), toDecimal(row[1]));
+        return new Totals(((Number) row[0]).longValue(), toDecimal(row[1]), ((Number) row[2]).longValue(), toDecimal(row[3]));
     }
 
     private record Filter(String where, Map<String, Object> params) {
     }
 
-    private static Filter filter(Instant from, Instant to, String q) {
+    private static Filter filter(Instant from, Instant to, String q, Boolean paid) {
         List<String> clauses = new ArrayList<>();
         Map<String, Object> params = new HashMap<>();
         if (from != null) {
@@ -75,8 +79,12 @@ public class SaleQueryRepository {
             clauses.add("s.soldAt < :to");
             params.put("to", to);
         }
+        if (paid != null) {
+            clauses.add("s.paid = :paid");
+            params.put("paid", paid);
+        }
         if (q != null && !q.isBlank()) {
-            clauses.add("lower(s.productName) like :q");
+            clauses.add("(lower(s.productName) like :q or lower(coalesce(s.customerName, '')) like :q)");
             params.put("q", "%" + q.trim().toLowerCase(Locale.ROOT) + "%");
         }
         return new Filter(clauses.isEmpty() ? "" : " where " + String.join(" and ", clauses), params);

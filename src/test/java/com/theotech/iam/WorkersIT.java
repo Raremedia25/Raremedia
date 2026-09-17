@@ -90,7 +90,7 @@ class WorkersIT {
         mvc.perform(TestAuth.json(mvc, post("/api/sales"), alice, "{\"productId\":" + productId + ",\"quantity\":2}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.soldByName").value("Alice Worker"))
-                .andExpect(jsonPath("$.data.remainingStock").value(3));
+                .andExpect(jsonPath("$.data.lines[0].remainingStock").value(3));
         mvc.perform(get("/api/sales").session(alice))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].soldByName").value("Alice Worker"));

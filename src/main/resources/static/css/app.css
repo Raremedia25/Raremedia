@@ -127,6 +127,26 @@ body { background: var(--bs-body-bg); }
 .tt-touch .btn { min-height: 44px; }
 .tt-touch select[size] option { padding: .5rem .25rem; }
 
+/* ---------- sell page product picker ---------- */
+.tt-product-list { max-height: 60vh; overflow-y: auto; }
+.tt-product-list .list-group-item.active-soft { background: var(--bs-success-bg-subtle); }
+
+/* ---------- receipt ---------- */
+.tt-receipt-page { min-height: 100vh; padding: 1rem; background: var(--bs-tertiary-bg); }
+.tt-receipt { width: 100%; max-width: 380px; margin: 0 auto; background: #fff; color: #111; font-family: "Courier New", Consolas, monospace; font-size: .95rem; }
+.tt-receipt .tt-receipt-title { font-size: 1.2rem; font-weight: 700; letter-spacing: .05em; }
+.tt-receipt table { width: 100%; }
+.tt-receipt td { padding: .15rem 0; vertical-align: top; }
+.tt-receipt .tt-dashed { border-top: 1px dashed #999; margin: .5rem 0; }
+.tt-receipt .tt-stamp { display: inline-block; border: 3px solid; border-radius: .4rem; padding: .15rem .6rem; font-weight: 800; letter-spacing: .1em; transform: rotate(-6deg); }
+.tt-receipt .tt-stamp.paid { color: #15803d; border-color: #15803d; }
+.tt-receipt .tt-stamp.unpaid { color: #b91c1c; border-color: #b91c1c; }
+@media print {
+  .tt-receipt-page { padding: 0; background: #fff; }
+  .tt-receipt { max-width: none; border: 0 !important; box-shadow: none !important; }
+  @page { margin: 8mm; }
+}
+
 /* ---------- print (reports) ---------- */
 @media print {
   .tt-sidebar, .tt-topbar, .tt-no-print, .tt-backdrop { display: none !important; }

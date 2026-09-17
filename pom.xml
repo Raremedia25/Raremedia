@@ -24,6 +24,8 @@
     <skipITs>true</skipITs>
     <!-- Overridable so several compiles can run side by side: -DbuildDir=... -->
     <buildDir>${project.basedir}/target</buildDir>
+    <!-- Forked test JVMs (surefire/failsafe): small serial-GC heap so the build also runs on a 4 GB shop PC -->
+    <argLine>-Xmx448m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=192m -XX:TieredStopAtLevel=1</argLine>
   </properties>
 
   <dependencies>
@@ -64,6 +66,12 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!-- E-mailed reports (SMTP) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
 
     <!-- API documentation -->

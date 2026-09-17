@@ -7,8 +7,8 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
   <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="/css/app.css?v=5">
-  <script src="/js/theme.js?v=5"></script>
+  <link rel="stylesheet" href="/css/app.css?v=7">
+  <script src="/js/theme.js?v=7"></script>
 </head>
 <body data-page="dashboard" data-title="Dashboard">
   <div id="app-content" hidden>
@@ -26,28 +26,34 @@
     </div>
 
     <div class="row g-3 mb-4">
-      <div class="col-6 col-xl-3">
+      <div class="col-6 col-xl">
         <a class="card tt-stat-card h-100 text-decoration-none text-reset" href="/products.html"><div class="card-body d-flex align-items-center gap-3">
           <div class="tt-stat-icon bg-primary-subtle text-primary"><i class="bi bi-box-seam"></i></div>
           <div><div class="tt-stat-value" id="totalProducts">—</div><div class="tt-stat-label">Total products</div></div>
         </div></a>
       </div>
-      <div class="col-6 col-xl-3">
+      <div class="col-6 col-xl">
         <a class="card tt-stat-card h-100 text-decoration-none text-reset" href="/stock.html"><div class="card-body d-flex align-items-center gap-3">
           <div class="tt-stat-icon bg-info-subtle text-info"><i class="bi bi-boxes"></i></div>
           <div><div class="tt-stat-value" id="itemsInStock">—</div><div class="tt-stat-label">Items in stock</div></div>
         </div></a>
       </div>
-      <div class="col-6 col-xl-3">
+      <div class="col-6 col-xl">
         <a class="card tt-stat-card h-100 text-decoration-none text-reset" href="/sales.html"><div class="card-body d-flex align-items-center gap-3">
           <div class="tt-stat-icon bg-warning-subtle text-warning"><i class="bi bi-bag-check"></i></div>
           <div><div class="tt-stat-value" id="itemsSold">—</div><div class="tt-stat-label">Items sold</div></div>
         </div></a>
       </div>
-      <div class="col-6 col-xl-3">
+      <div class="col-6 col-xl">
         <a class="card tt-stat-card h-100 text-decoration-none text-reset" href="/sales.html"><div class="card-body d-flex align-items-center gap-3">
           <div class="tt-stat-icon bg-success-subtle text-success"><i class="bi bi-cash-coin"></i></div>
           <div><div class="tt-stat-value tt-money" id="totalSales">—</div><div class="tt-stat-label">Total sales</div></div>
+        </div></a>
+      </div>
+      <div class="col-6 col-xl">
+        <a class="card tt-stat-card h-100 text-decoration-none text-reset" href="/sales.html?paid=false"><div class="card-body d-flex align-items-center gap-3">
+          <div class="tt-stat-icon bg-danger-subtle text-danger"><i class="bi bi-hourglass-split"></i></div>
+          <div><div class="tt-stat-value tt-money" id="unpaidAmount">—</div><div class="tt-stat-label">Not paid <span id="unpaidCount"></span></div></div>
         </div></a>
       </div>
     </div>
@@ -88,10 +94,10 @@
   </div>
 
   <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-  <script src="/js/api.js?v=5"></script>
-  <script src="/js/ui.js?v=5"></script>
-  <script src="/js/auth.js?v=5"></script>
-  <script src="/js/layout.js?v=5"></script>
+  <script src="/js/api.js?v=7"></script>
+  <script src="/js/ui.js?v=7"></script>
+  <script src="/js/auth.js?v=7"></script>
+  <script src="/js/layout.js?v=7"></script>
   <script>
     document.addEventListener('app:ready', e => {
       const esc = UI.escapeHtml;
@@ -110,6 +116,8 @@
         document.getElementById('itemsInStock').textContent = UI.number(d.itemsInStock);
         document.getElementById('itemsSold').textContent = UI.number(d.itemsSold);
         document.getElementById('totalSales').textContent = UI.money(d.totalSales);
+        document.getElementById('unpaidAmount').textContent = UI.money(d.unpaidAmount);
+        document.getElementById('unpaidCount').textContent = d.unpaidCount ? '(' + d.unpaidCount + ')' : '';
         document.getElementById('threshold-note').textContent = d.lowStockThreshold + ' or fewer';
 
         document.getElementById('low-count').textContent = d.lowStock.length;
@@ -121,7 +129,8 @@
 
         const tbody = document.getElementById('recent');
         tbody.innerHTML = d.recentSales.length ? d.recentSales.map(s =>
-          '<tr><td>' + esc(s.productName) + '</td><td class="text-end">' + esc(UI.number(s.quantity)) + '</td>' +
+          '<tr><td>' + esc(s.productName) + (s.paid ? '' : ' <span class="badge text-bg-danger">NOT PAID</span>') +
+          (s.customerName ? '<div class="small text-secondary">' + esc(s.customerName) + '</div>' : '') + '</td><td class="text-end">' + esc(UI.number(s.quantity)) + '</td>' +
           '<td class="text-end tt-money">' + esc(UI.money(s.total)) + '</td><td class="d-none d-md-table-cell small text-secondary">' + esc(s.soldByName || '') + '</td>' +
           '<td class="text-end text-nowrap small text-secondary">' + esc(UI.dateTime(s.soldAt)) + '</td></tr>').join('')
           : '<tr><td colspan="5" class="text-center text-secondary py-4">No sales recorded yet. <a href="/sell.html">Sell the first item</a>.</td></tr>';

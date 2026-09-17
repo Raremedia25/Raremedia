@@ -39,7 +39,10 @@ window.Api = (function () {
     DUPLICATE_CATEGORY: 'A category with that name already exists.',
     CATEGORY_IN_USE: 'This category still has products. Move or delete them first.',
     INSUFFICIENT_STOCK: 'Insufficient stock.',
-    DUPLICATE_USERNAME: 'That username is already taken.'
+    DUPLICATE_USERNAME: 'That username is already taken.',
+    REPORT_EMAIL_MISSING: 'Enter the report e-mail address in Settings first.',
+    MAIL_NOT_CONFIGURED: 'E-mail is not set up yet. Fill in the mail server details in Settings.',
+    MAIL_FAILED: 'The mail server refused the message. Check the server, port, username and password in Settings.'
   };
 
   function cookie(name) {

@@ -5,6 +5,7 @@ import com.theotech.catalog.repository.ProductRepository;
 import com.theotech.reports.dto.SalesReportResponse;
 import com.theotech.sales.dto.ProductSalesAggregate;
 import com.theotech.sales.repository.SaleRepository;
+import com.theotech.sales.service.SaleService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,20 +20,30 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@PreAuthorize("hasRole('ADMIN')")
 @Transactional(readOnly = true)
 public class ReportService {
 
     private final SaleRepository sales;
     private final ProductRepository products;
+    private final SaleService saleService;
 
-    public ReportService(SaleRepository sales, ProductRepository products) {
+    public ReportService(SaleRepository sales, ProductRepository products, SaleService saleService) {
         this.sales = sales;
         this.products = products;
+        this.saleService = saleService;
     }
 
-    /** Sales per product between {@code from} (inclusive) and {@code to} (exclusive); either may be null. */
+    /** The report for the screen: administrators only. */
+    @PreAuthorize("hasRole('ADMIN')")
     public SalesReportResponse sales(Instant from, Instant to) {
+        return build(from, to);
+    }
+
+    /**
+     * Sales per product between {@code from} (inclusive) and {@code to} (exclusive); either may be null.
+     * Unguarded so the scheduled e-mail (no signed-in user) can use it; callers facing the API go through {@link #sales}.
+     */
+    public SalesReportResponse build(Instant from, Instant to) {
         Instant start = from == null ? Instant.EPOCH : from;
         Instant end = to == null ? Instant.now().plusSeconds(86_400) : to;
 
@@ -46,9 +57,10 @@ public class ReportService {
                 .toList();
 
         long quantity = rows.stream().mapToLong(SalesReportResponse.Row::quantitySold).sum();
-        BigDecimal total = rows.stream().map(SalesReportResponse.Row::totalSales)
-                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
-        return new SalesReportResponse(start, end, rows, quantity, total);
+        BigDecimal total = sum(rows.stream().map(SalesReportResponse.Row::totalSales));
+        BigDecimal unpaid = sum(rows.stream().map(SalesReportResponse.Row::unpaidSales));
+        return new SalesReportResponse(start, end, rows, quantity, total, total.subtract(unpaid), unpaid,
+                saleService.toResponses(sales.findUnpaidBetween(start, end)));
     }
 
     private static SalesReportResponse.Row row(ProductSalesAggregate a, Product p) {
@@ -56,7 +68,16 @@ public class ReportService {
                 p == null ? a.productName() : p.getName(),
                 p == null ? null : p.getCategory().getName(),
                 a.quantity() == null ? 0 : a.quantity(),
-                (a.total() == null ? BigDecimal.ZERO : a.total()).setScale(2, RoundingMode.HALF_UP),
+                money(a.total()),
+                money(a.unpaidTotal()),
                 p == null ? null : p.getAvailableStock());
+    }
+
+    private static BigDecimal money(BigDecimal v) {
+        return (v == null ? BigDecimal.ZERO : v).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal sum(java.util.stream.Stream<BigDecimal> values) {
+        return values.reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
     }
 }

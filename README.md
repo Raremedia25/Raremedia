@@ -15,12 +15,24 @@ Bootstrap 5.3 + vanilla JavaScript (no build step, no CDN — works offline on a
 |---|---|
 | Dashboard | Total products, items in stock, items sold, total sales; low-stock and out-of-stock lists; recent sales |
 | Products | Add / edit / delete / search products; a picture per product; add stock; manage the category list |
-| Sell Item | Pick a product and a quantity, see the total, press SELL. Overselling is refused. Phone-friendly |
-| Sales History | Every sale with date filters (today / week / month / custom), search and totals |
+| Sell Items | Tap products to build one receipt with **several items**, adjust quantities, see the total, press SELL. **Paid** or **not paid** (credit: the customer's name is required). Overselling of any item refuses the whole receipt. Prints a **receipt**. Phone-friendly |
+| Receipt | Printable ticket per sale: receipt number, date, all items, total, PAID / NOT PAID stamp, customer (`receipt.html?no=000123`) |
+| Sales History | Every sale with date filters (today / week / month / custom), paid / not paid filter, search by product or customer, totals and amount still owed; mark a sale paid; open its receipt |
 | Stock | Stock · Sold · Available per product with AVAILABLE / LOW STOCK / OUT OF STOCK badges; "+ Add Stock" |
-| Reports | Sales per product for a period (sold, sales, remaining stock), printable |
+| Reports | Sales per product for a period (sold, sales, not paid, remaining stock) plus paid / not paid totals and the list of who still owes; printable; **E-mail report** button |
 | Workers | The admin adds worker accounts (name, username, first password), disables, resets or removes them |
-| Settings | Shop name and contact details, low-stock level (default 5), change password |
+| Settings | Shop name and contact details, low-stock level (default 5), change password; **E-mail reports**: your address, a daily report at a set time, and the mail account (SMTP) that sends it |
+
+### E-mailed reports
+
+In **Settings → E-mail reports** the administrator enters the address the reports go to, ticks "Send the day's
+report automatically every day" and picks the time (shop time, default 20:00), and fills in the mail account the
+server sends from (for Gmail: `smtp.gmail.com`, port `587`, your Gmail address, and an *App password*).
+"Send test e-mail" checks the account; "Send today's report now" and the **E-mail report** button on the Reports
+page send a report on demand. The daily report is sent once per day at or after the set time while the server is
+running (if the server was off at that time and comes back the same day, it is sent then). Each e-mail contains
+items sold, total sales, paid / not paid, the per-product table, the list of unpaid sales with customer names, and
+the low-stock list.
 
 Two kinds of user: the **administrator** can do everything; **workers** can sign in, sell and look at products,
 stock and sales history. Nothing else: no customers, suppliers, purchases, returns or audit log.
@@ -56,9 +68,10 @@ src\main\resources
 ```
 products    id, name, category_id, price, initial_stock, sold_quantity, image_updated_at, created_at, updated_at, deleted_at
 product_images  product_id, content (bytea), content_type   -- one picture per product, max 2 MB
-sales       id, product_id, product_name, quantity, unit_price, total, sold_at, sold_by
+sales       id, receipt_no, product_id, product_name, quantity, unit_price, total, sold_at, sold_by,
+            paid, paid_at, customer_name          -- one row per item; items sold together share receipt_no (sequence receipt_seq)
 categories  id, name
-settings    key, value                 (company.name, stock.low_threshold, …)
+settings    key, value                 (company.name, stock.low_threshold, report.email, report.daily_*, mail.*, …)
 users       the administrator and the workers (role SALES_STAFF = worker)
 ```
 
@@ -74,10 +87,13 @@ POST   /api/products/{id}/stock              { "quantity": 20 }
 GET/POST/DELETE /api/products/{id}/image     the picture (POST = multipart "file", jpeg/png/webp/gif)
 GET/POST /api/workers   PUT /api/workers/{id}   POST /api/workers/{id}/reset-password   DELETE /api/workers/{id}   (admin only)
 GET    /api/categories                       POST /api/categories                  DELETE /api/categories/{id}
-GET    /api/sales?from&to&q&page&size&sort   GET /api/sales/{id}                   POST /api/sales  { "productId": 5, "quantity": 3 }
+GET    /api/sales?from&to&q&paid&page&size&sort   GET /api/sales/{id}   GET /api/sales/receipt/{no}
+POST   /api/sales  { "items": [ { "productId": 5, "quantity": 3 }, … ], "paid": false, "customerName": "Uwase" }
+       (or a single "productId"/"quantity"; paid defaults to true; answers with the receipt and its lines)
+POST   /api/sales/receipt/{no}/paid  { "paid": true }     POST /api/sales/{id}/paid  (pays the receipt the line belongs to)
 GET    /api/dashboard
-GET    /api/reports/sales?from&to
-GET/PUT /api/settings
+GET    /api/reports/sales?from&to            POST /api/reports/sales/email?from&to   (admin; sends it to the report address)
+GET/PUT /api/settings                        GET/PUT /api/settings/mail   POST /api/settings/mail/test   (admin)
 POST   /api/auth/login (form)   POST /api/auth/logout   GET /api/auth/me   POST /api/auth/change-password
 ```
 

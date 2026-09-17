@@ -2,6 +2,8 @@ package com.theotech.sales.web;
 
 import com.theotech.common.ApiResponse;
 import com.theotech.common.web.PageParams;
+import com.theotech.sales.dto.PaidRequest;
+import com.theotech.sales.dto.ReceiptResponse;
 import com.theotech.sales.dto.SaleRequest;
 import com.theotech.sales.dto.SaleResponse;
 import com.theotech.sales.dto.SalesHistoryResponse;
@@ -32,17 +34,21 @@ public class SaleController {
         this.service = service;
     }
 
-    /** Sales history: {@code ?from&to} (ISO instants, {@code to} exclusive), {@code ?q} product name, paging and sort. */
+    /**
+     * Sales history (one row per line sold): {@code ?from&to} (ISO instants, {@code to} exclusive), {@code ?q} product
+     * or customer name, {@code ?paid=true|false}, paging and sort.
+     */
     @GetMapping
     public ApiResponse<SalesHistoryResponse> history(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) Boolean paid,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
         var pageable = PageParams.of(page, size, sort, SaleQueryRepository.SORTS, Sort.by(Sort.Direction.DESC, "soldAt"));
-        return ApiResponse.ok(service.history(from, to, q, pageable));
+        return ApiResponse.ok(service.history(from, to, q, paid, pageable));
     }
 
     @GetMapping("/{id}")
@@ -50,9 +56,27 @@ public class SaleController {
         return ApiResponse.ok(service.get(id));
     }
 
+    /** One ticket with all its lines; {@code no} accepts the printed form ({@code 000123}) or the plain number. */
+    @GetMapping("/receipt/{no}")
+    public ApiResponse<ReceiptResponse> receipt(@PathVariable String no) {
+        return ApiResponse.ok(service.receipt(Long.parseLong(no.trim())));
+    }
+
+    /** Sells the cart ({@code items}) or a single {@code productId}/{@code quantity}; answers with the receipt. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<SaleResponse> sell(@Valid @RequestBody SaleRequest request) {
+    public ApiResponse<ReceiptResponse> sell(@Valid @RequestBody SaleRequest request) {
         return ApiResponse.ok(service.sell(request));
+    }
+
+    /** Marks the whole ticket this line belongs to as paid / not paid. */
+    @PostMapping("/{id}/paid")
+    public ApiResponse<ReceiptResponse> setPaid(@PathVariable Long id, @Valid @RequestBody PaidRequest request) {
+        return ApiResponse.ok(service.setPaid(id, request.paid()));
+    }
+
+    @PostMapping("/receipt/{no}/paid")
+    public ApiResponse<ReceiptResponse> setReceiptPaid(@PathVariable String no, @Valid @RequestBody PaidRequest request) {
+        return ApiResponse.ok(service.setReceiptPaid(Long.parseLong(no.trim()), request.paid()));
     }
 }

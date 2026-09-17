@@ -45,8 +45,12 @@ public class DashboardService {
                 .sorted(Comparator.comparing(Product::getName))
                 .map(p -> ProductResponse.from(p, threshold)).toList();
 
-        BigDecimal totalSales = new BigDecimal(sales.totalAmount().toString()).setScale(2, RoundingMode.HALF_UP);
-        return new DashboardResponse(all.size(), inStock, sales.totalQuantity().longValue(), totalSales,
+        return new DashboardResponse(all.size(), inStock, sales.totalQuantity().longValue(), money(sales.totalAmount()),
+                sales.countByPaidFalse(), money(sales.unpaidAmount()),
                 threshold, low, out, saleService.recent());
+    }
+
+    private static BigDecimal money(Number n) {
+        return new BigDecimal(n.toString()).setScale(2, RoundingMode.HALF_UP);
     }
 }

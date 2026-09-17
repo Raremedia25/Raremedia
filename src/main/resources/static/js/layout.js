@@ -12,7 +12,7 @@ window.Layout = (function () {
       { key: 'products-add', href: '/products.html?add=1', label: 'Add Product', admin: true }
     ] },
     { key: 'sales', icon: 'bi-cart-check', label: 'Sales', children: [
-      { key: 'sell', href: '/sell.html', label: 'Sell Item' },
+      { key: 'sell', href: '/sell.html', label: 'Sell Items' },
       { key: 'sales', href: '/sales.html', label: 'Sales History' }
     ] },
     { key: 'stock', href: '/stock.html', icon: 'bi-clipboard-data', label: 'Stock' },

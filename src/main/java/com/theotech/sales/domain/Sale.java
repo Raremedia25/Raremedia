@@ -12,8 +12,10 @@ import java.math.RoundingMode;
 import java.time.Instant;
 
 /**
- * One sale of one product. Immutable once written: it snapshots the product name and the price that
- * applied at the time, so history stays correct when the product is renamed, re-priced or deleted.
+ * One line of a sale: one product, a quantity, the price that applied. Lines sold together share a
+ * {@code receiptNo} (one ticket). What was sold never changes once written: it snapshots the product name
+ * and price, so history stays correct when the product is renamed, re-priced or deleted. The only thing
+ * that moves afterwards is {@code paid} (a customer who took goods on credit settles later).
  */
 @Entity
 @Table(name = "sales")
@@ -22,6 +24,9 @@ public class Sale {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "receipt_no", nullable = false, updatable = false)
+    private Long receiptNo;
 
     @Column(name = "product_id", nullable = false, updatable = false)
     private Long productId;
@@ -44,21 +49,55 @@ public class Sale {
     @Column(name = "sold_by", updatable = false)
     private Long soldBy;
 
+    @Column(nullable = false)
+    private boolean paid = true;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
+
+    @Column(name = "customer_name")
+    private String customerName;
+
     protected Sale() {
     }
 
-    public Sale(Long productId, String productName, int quantity, BigDecimal unitPrice, Long soldBy) {
+    public Sale(long receiptNo, Instant soldAt, Long productId, String productName, int quantity, BigDecimal unitPrice,
+                Long soldBy, boolean paid, String customerName) {
+        this.receiptNo = receiptNo;
+        this.soldAt = soldAt;
         this.productId = productId;
         this.productName = productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice.setScale(2, RoundingMode.HALF_UP);
         this.total = this.unitPrice.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP);
-        this.soldAt = Instant.now();
         this.soldBy = soldBy;
+        this.customerName = customerName;
+        this.paid = paid;
+        this.paidAt = paid ? soldAt : null;
+    }
+
+    /** Marks the line paid (money received) or unpaid (recorded by mistake as paid). */
+    public void setPaid(boolean paid) {
+        if (this.paid == paid) return;
+        this.paid = paid;
+        this.paidAt = paid ? Instant.now() : null;
+    }
+
+    /** Receipt number as printed on the ticket: zero-padded to six digits. */
+    public String receiptNo() {
+        return formatReceiptNo(receiptNo);
+    }
+
+    public static String formatReceiptNo(Long no) {
+        return no == null ? null : String.format("%06d", no);
     }
 
     public Long getId() {
         return id;
+    }
+
+    public Long getReceiptNo() {
+        return receiptNo;
     }
 
     public Long getProductId() {
@@ -87,5 +126,17 @@ public class Sale {
 
     public Long getSoldBy() {
         return soldBy;
+    }
+
+    public boolean isPaid() {
+        return paid;
+    }
+
+    public Instant getPaidAt() {
+        return paidAt;
+    }
+
+    public String getCustomerName() {
+        return customerName;
     }
 }

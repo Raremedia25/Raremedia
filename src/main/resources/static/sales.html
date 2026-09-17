@@ -7,28 +7,35 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
   <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="/css/app.css?v=5">
-  <script src="/js/theme.js?v=5"></script>
+  <link rel="stylesheet" href="/css/app.css?v=7">
+  <script src="/js/theme.js?v=7"></script>
 </head>
 <body data-page="sales" data-title="Sales History">
   <div id="app-content" hidden>
     <div class="row g-3 mb-3">
-      <div class="col-6 col-md-4">
+      <div class="col-6 col-md-3">
         <div class="card tt-stat-card h-100"><div class="card-body">
           <div class="tt-stat-label">Sales in this view</div>
           <div class="tt-stat-value" id="sum-count">—</div>
         </div></div>
       </div>
-      <div class="col-6 col-md-4">
+      <div class="col-6 col-md-3">
         <div class="card tt-stat-card h-100"><div class="card-body">
           <div class="tt-stat-label">Items sold</div>
           <div class="tt-stat-value" id="sum-qty">—</div>
         </div></div>
       </div>
-      <div class="col-12 col-md-4">
+      <div class="col-6 col-md-3">
         <div class="card tt-stat-card h-100 border-success"><div class="card-body">
           <div class="tt-stat-label">Total sales</div>
           <div class="tt-stat-value tt-money text-success" id="sum-total">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100 border-danger" role="button" id="unpaid-card" title="Show only unpaid sales"><div class="card-body">
+          <div class="tt-stat-label">Not paid</div>
+          <div class="tt-stat-value tt-money text-danger" id="sum-unpaid">—</div>
+          <div class="small text-secondary" id="sum-unpaid-count"></div>
         </div></div>
       </div>
     </div>
@@ -36,33 +43,56 @@
   </div>
 
   <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-  <script src="/js/api.js?v=5"></script>
-  <script src="/js/ui.js?v=5"></script>
-  <script src="/js/auth.js?v=5"></script>
-  <script src="/js/datatable.js?v=5"></script>
-  <script src="/js/layout.js?v=5"></script>
+  <script src="/js/api.js?v=7"></script>
+  <script src="/js/ui.js?v=7"></script>
+  <script src="/js/auth.js?v=7"></script>
+  <script src="/js/datatable.js?v=7"></script>
+  <script src="/js/layout.js?v=7"></script>
   <script>
     document.addEventListener('app:ready', () => {
       const esc = UI.escapeHtml;
       const params = new URLSearchParams(location.search);
+      let paidFilter = params.get('paid') || '';   // '' all, 'true', 'false'
 
       const dt = new DataTable(document.getElementById('sales-table'), {
         url: '/api/sales',
         sort: 'soldAt,desc',
-        searchPlaceholder: 'Search product…',
+        searchPlaceholder: 'Search product or customer…',
         columns: [
+          { key: 'receiptNo', label: 'No.', sortable: false, className: 'text-nowrap small text-secondary d-none d-md-table-cell' },
           { key: 'soldAt', label: 'Date', sortable: true, className: 'text-nowrap', render: s => esc(UI.dateTime(s.soldAt)) },
-          { key: 'productName', label: 'Product', sortable: true, render: s => '<span class="fw-semibold">' + esc(s.productName) + '</span>' },
+          { key: 'productName', label: 'Product', sortable: true, render: s => '<span class="fw-semibold">' + esc(s.productName) + '</span>' +
+              (s.customerName ? '<div class="small text-secondary"><i class="bi bi-person me-1"></i>' + esc(s.customerName) + '</div>' : '') },
           { key: 'quantity', label: 'Quantity', sortable: true, className: 'text-end', render: s => esc(UI.number(s.quantity)) },
           { key: 'unitPrice', label: 'Unit price', sortable: true, className: 'text-end tt-money d-none d-md-table-cell', render: s => esc(UI.money(s.unitPrice)) },
           { key: 'total', label: 'Total', sortable: true, className: 'text-end tt-money fw-semibold', render: s => esc(UI.money(s.total)) },
-          { key: 'soldByName', label: 'By', className: 'd-none d-lg-table-cell small text-secondary', render: s => esc(s.soldByName || '') }
+          { key: 'paid', label: 'Payment', sortable: true, className: 'text-nowrap', render: s => UI.paidBadge(s.paid) },
+          { key: 'soldByName', label: 'By', className: 'd-none d-lg-table-cell small text-secondary', render: s => esc(s.soldByName || '') },
+          { key: 'actions', label: '', className: 'text-end text-nowrap', render: s =>
+              '<div class="btn-group btn-group-sm">' +
+                (s.paid ? '' : '<button class="btn btn-outline-success" data-action="pay" title="Mark as paid"><i class="bi bi-cash-coin"></i></button>') +
+                '<button class="btn btn-outline-secondary" data-action="receipt" title="Receipt"><i class="bi bi-receipt"></i></button>' +
+              '</div>' }
         ],
-        query: () => UI.dateRange(fromInput.value, toInput.value),
+        query: () => Object.assign(UI.dateRange(fromInput.value, toInput.value), paidFilter ? { paid: paidFilter } : {}),
         onLoad: data => {
           document.getElementById('sum-count').textContent = UI.number(data.totalElements);
           document.getElementById('sum-qty').textContent = UI.number(data.totalQuantity);
           document.getElementById('sum-total').textContent = UI.money(data.totalAmount);
+          document.getElementById('sum-unpaid').textContent = UI.money(data.unpaidAmount);
+          document.getElementById('sum-unpaid-count').textContent = data.unpaidCount ? data.unpaidCount + ' sale' + (data.unpaidCount === 1 ? '' : 's') + ' still to be paid' : 'everything is paid';
+        },
+        onAction: async (action, s) => {
+          if (action === 'receipt') { UI.openReceipt(s.receiptNo, false); return; }
+          if (action === 'pay') {
+            if (!await UI.confirm('Mark receipt ' + s.receiptNo + ' (' + s.productName + (s.customerName ? ', ' + s.customerName : '') + ') as paid? All items on that receipt will be marked paid.',
+                                  { title: 'Payment received', variant: 'success', okLabel: 'Yes, paid' })) return;
+            try {
+              await Api.post('/api/sales/receipt/' + encodeURIComponent(s.receiptNo) + '/paid', { paid: true });
+              UI.toast('Marked as paid.', 'success');
+              dt.reload();
+            } catch (err) { UI.showError(err); }
+          }
         }
       });
 
@@ -75,9 +105,18 @@
         '</div>');
       const fromInput = dt.addFilter('<input type="date" class="form-control form-control-sm w-auto" title="From">');
       const toInput = dt.addFilter('<input type="date" class="form-control form-control-sm w-auto" title="To">');
+      const paidGroup = dt.addFilter(
+        '<div class="btn-group btn-group-sm" role="group">' +
+          '<button type="button" class="btn btn-outline-secondary" data-paid="">All</button>' +
+          '<button type="button" class="btn btn-outline-success" data-paid="true">Paid</button>' +
+          '<button type="button" class="btn btn-outline-danger" data-paid="false">Not paid</button>' +
+        '</div>');
 
       function markPreset(name) {
         presets.querySelectorAll('[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === name));
+      }
+      function markPaid() {
+        paidGroup.querySelectorAll('[data-paid]').forEach(b => b.classList.toggle('active', b.dataset.paid === paidFilter));
       }
       presets.addEventListener('click', e => {
         const b = e.target.closest('[data-period]');
@@ -88,12 +127,21 @@
         markPreset(b.dataset.period);
         dt.reload(true);
       });
+      paidGroup.addEventListener('click', e => {
+        const b = e.target.closest('[data-paid]');
+        if (!b) return;
+        paidFilter = b.dataset.paid;
+        markPaid();
+        dt.reload(true);
+      });
+      document.getElementById('unpaid-card').addEventListener('click', () => { paidFilter = 'false'; markPaid(); dt.reload(true); });
       [fromInput, toInput].forEach(el => el.addEventListener('change', () => { markPreset(null); dt.reload(true); }));
 
       const initial = UI.periodDates(params.get('period') || 'all');
       fromInput.value = initial.from;
       toInput.value = initial.to;
       markPreset(params.get('period') || 'all');
+      markPaid();
       if (params.get('q')) {
         const search = dt.el.querySelector('[data-role=search]');
         search.value = params.get('q');

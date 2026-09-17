@@ -13,7 +13,10 @@ if %errorlevel%==0 (
   echo [db-start] PostgreSQL is already running on port %PGPORT%.
   exit /b 0
 )
-"%PG_BIN%\pg_ctl.exe" -D "%PGDATA%" -l "%PG_LOG%" -w -t 60 -o "-p %PGPORT% -c listen_addresses=%PGHOST%" start
+rem stdin/stdout/stderr go to nul on purpose: the postgres process inherits these handles and keeps them for
+rem as long as it runs; if they pointed at a log file (serve.cmd redirects this script), every later write to
+rem that file from another process would fail with "file is being used by another process".
+"%PG_BIN%\pg_ctl.exe" -D "%PGDATA%" -l "%PG_LOG%" -w -t 60 -o "-p %PGPORT% -c listen_addresses=%PGHOST%" start <nul >nul 2>&1
 if %errorlevel% neq 0 (
   echo [db-start] Failed to start. See %PG_LOG%
   exit /b 1
