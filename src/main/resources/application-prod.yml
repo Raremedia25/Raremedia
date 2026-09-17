@@ -1,20 +1,40 @@
 spring:
+  main:
+    banner-mode: off
   datasource:
     url: ${APP_DB_URL:jdbc:postgresql://db:5432/theo_tech}
     username: ${APP_DB_USER:theotech}
     password: ${APP_DB_PASSWORD}
+    hikari:
+      # a shop of a few users on a small instance: a handful of connections is plenty and starts faster
+      maximum-pool-size: 4
+      minimum-idle: 1
+      connection-timeout: 30000
+  jpa:
+    show-sql: false
 
 server:
   # hosting platforms (Render) tell the app which port to listen on
   port: ${PORT:8080}
   # Caddy or the platform terminates HTTPS and forwards X-Forwarded-* headers; trust them so redirects and cookies use https.
   forward-headers-strategy: framework
+  tomcat:
+    threads:
+      max: 24
+      min-spare: 2
   servlet:
     session:
       cookie:
         # true when the site is reached over HTTPS (a domain in SITE_ADDRESS); set APP_COOKIE_SECURE=false
         # in .env when the shop reaches the server over plain http://<ip>, otherwise the browser drops the cookie.
         secure: ${APP_COOKIE_SECURE:true}
+
+# the interactive API docs are a developer tool; leaving them out saves start-up time and memory in production
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 logging:
   level:

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reports · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=10">
+  <script src="/js/theme.js?v=10"></script>
+</head>
+<body data-page="reports" data-title="Sales Report" data-admin>
+  <div id="app-content" hidden>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 tt-no-print">
+      <div class="btn-group btn-group-sm" role="group" id="presets">
+        <button type="button" class="btn btn-outline-secondary" data-period="today">Today</button>
+        <button type="button" class="btn btn-outline-secondary" data-period="week">This week</button>
+        <button type="button" class="btn btn-outline-secondary" data-period="month">This month</button>
+        <button type="button" class="btn btn-outline-secondary" data-period="all">All time</button>
+      </div>
+      <input type="date" class="form-control form-control-sm w-auto" id="from" title="From">
+      <span class="text-secondary small">to</span>
+      <input type="date" class="form-control form-control-sm w-auto" id="to" title="To">
+      <button class="btn btn-primary btn-sm" id="run"><i class="bi bi-play-fill me-1"></i>Show</button>
+      <div class="ms-auto d-flex gap-2">
+        <button class="btn btn-primary btn-sm" id="pdf" title="Download this report as a PDF with the shop logo"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
+        <button class="btn btn-outline-primary btn-sm" id="email" title="Send this report to the e-mail address in Settings"><i class="bi bi-envelope me-1"></i>E-mail report</button>
+        <button class="btn btn-outline-secondary btn-sm" id="print"><i class="bi bi-printer me-1"></i>Print</button>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Items sold</div><div class="tt-stat-value" id="k-qty">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100 border-success"><div class="card-body">
+          <div class="tt-stat-label">Total sales</div><div class="tt-stat-value tt-money text-success" id="k-total">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Paid</div><div class="tt-stat-value tt-money" id="k-paid">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100 border-danger"><div class="card-body">
+          <div class="tt-stat-label">Not paid</div><div class="tt-stat-value tt-money text-danger" id="k-unpaid">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Expenses</div><div class="tt-stat-value tt-money" id="k-expenses">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100 border-success"><div class="card-body">
+          <div class="tt-stat-label">Sales minus expenses</div><div class="tt-stat-value tt-money" id="k-net">—</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-header d-flex align-items-center gap-3">
+        <img id="logo" class="tt-logo-img" alt="" hidden>
+        <div>
+          <div class="fw-semibold" id="company">THEO TECH LTD</div>
+          <div class="small text-secondary">Sales report · <span id="range"></span></div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light"><tr>
+            <th>Product</th>
+            <th class="d-none d-md-table-cell">Category</th>
+            <th class="text-end">Sold</th>
+            <th class="text-end">Sales</th>
+            <th class="text-end">Not paid</th>
+            <th class="text-end">Remaining stock</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+          <tfoot class="table-light fw-bold"><tr>
+            <td colspan="2">TOTAL</td>
+            <td class="text-end" id="total-qty">0</td>
+            <td class="text-end tt-money" id="total-sales">RWF 0</td>
+            <td class="text-end tt-money text-danger" id="total-unpaid">—</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-header d-flex align-items-center">
+        <span class="fw-semibold"><i class="bi bi-wallet2 me-2 text-warning"></i>Expenses in this period</span>
+        <a class="btn btn-link btn-sm ms-auto tt-no-print" href="/expenses.html">Manage expenses</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Category</th><th class="text-end">Entries</th><th class="text-end">Amount</th></tr></thead>
+          <tbody id="expense-rows"></tbody>
+          <tfoot class="table-light fw-bold"><tr><td>TOTAL</td><td></td><td class="text-end tt-money" id="expense-total">RWF 0</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center">
+        <span class="fw-semibold text-danger-emphasis"><i class="bi bi-exclamation-circle me-2"></i>Not paid in this period</span>
+        <span class="badge text-bg-danger ms-2" id="unpaid-count">0</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>No.</th><th>Date</th><th>Customer</th><th>Product</th><th class="text-end">Qty</th><th class="text-end">Amount</th><th class="tt-no-print"></th></tr></thead>
+          <tbody id="unpaid-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=10"></script>
+  <script src="/js/ui.js?v=10"></script>
+  <script src="/js/auth.js?v=10"></script>
+  <script src="/js/layout.js?v=10"></script>
+  <script>
+    document.addEventListener('app:ready', async () => {
+      const esc = UI.escapeHtml;
+      const fromInput = document.getElementById('from');
+      const toInput = document.getElementById('to');
+      const presets = document.getElementById('presets');
+      const emailBtn = document.getElementById('email');
+
+      function markPreset(name) {
+        presets.querySelectorAll('[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === name));
+      }
+
+      async function run() {
+        const range = UI.dateRange(fromInput.value, toInput.value);
+        try {
+          const r = await Api.get('/api/reports/sales', { query: range });
+          document.getElementById('range').textContent =
+            (fromInput.value ? UI.date(fromInput.value) : 'beginning') + ' – ' + (toInput.value ? UI.date(toInput.value) : 'today');
+          document.getElementById('k-qty').textContent = UI.number(r.totalQuantity);
+          document.getElementById('k-total').textContent = UI.money(r.totalSales);
+          document.getElementById('k-paid').textContent = UI.money(r.totalPaid);
+          document.getElementById('k-unpaid').textContent = UI.money(r.totalUnpaid);
+          document.getElementById('k-expenses').textContent = UI.money(r.totalExpenses);
+          const net = document.getElementById('k-net');
+          net.textContent = UI.money(r.netAfterExpenses);
+          net.className = 'tt-stat-value tt-money ' + (Number(r.netAfterExpenses) >= 0 ? 'text-success' : 'text-danger');
+          document.getElementById('expense-rows').innerHTML = r.expensesByCategory.length ? r.expensesByCategory.map(c =>
+            '<tr><td class="fw-semibold">' + esc(c.category) + '</td><td class="text-end">' + esc(UI.number(c.count)) + '</td>' +
+            '<td class="text-end tt-money">' + esc(UI.money(c.total)) + '</td></tr>').join('')
+            : '<tr><td colspan="3" class="text-center text-secondary py-3">No expenses recorded in this period.</td></tr>';
+          document.getElementById('expense-total').textContent = UI.money(r.totalExpenses);
+
+          const rows = document.getElementById('rows');
+          rows.innerHTML = r.rows.length ? r.rows.map(row =>
+            '<tr><td class="fw-semibold">' + esc(row.productName) + '</td>' +
+            '<td class="d-none d-md-table-cell text-secondary">' + esc(row.categoryName || '—') + '</td>' +
+            '<td class="text-end">' + esc(UI.number(row.quantitySold)) + '</td>' +
+            '<td class="text-end tt-money">' + esc(UI.money(row.totalSales)) + '</td>' +
+            '<td class="text-end tt-money' + (Number(row.unpaidSales) > 0 ? ' text-danger' : ' text-secondary') + '">' + (Number(row.unpaidSales) > 0 ? esc(UI.money(row.unpaidSales)) : '—') + '</td>' +
+            '<td class="text-end">' + (row.remainingStock == null ? '<span class="text-secondary">deleted</span>' : esc(UI.number(row.remainingStock))) + '</td></tr>').join('')
+            : '<tr><td colspan="6" class="text-center text-secondary py-4"><i class="bi bi-inbox me-2"></i>No sales in this period</td></tr>';
+          document.getElementById('total-qty').textContent = UI.number(r.totalQuantity);
+          document.getElementById('total-sales').textContent = UI.money(r.totalSales);
+          document.getElementById('total-unpaid').textContent = Number(r.totalUnpaid) > 0 ? UI.money(r.totalUnpaid) : '—';
+
+          document.getElementById('unpaid-count').textContent = r.unpaidSales.length;
+          document.getElementById('unpaid-rows').innerHTML = r.unpaidSales.length ? r.unpaidSales.map(s =>
+            '<tr data-id="' + s.id + '"><td class="small text-secondary">' + esc(s.receiptNo) + '</td><td class="text-nowrap">' + esc(UI.dateTime(s.soldAt)) + '</td>' +
+            '<td class="fw-semibold">' + esc(s.customerName || '—') + '</td><td>' + esc(s.productName) + '</td>' +
+            '<td class="text-end">' + esc(UI.number(s.quantity)) + '</td><td class="text-end tt-money text-danger">' + esc(UI.money(s.total)) + '</td>' +
+            '<td class="text-end tt-no-print"><div class="btn-group btn-group-sm">' +
+              '<button class="btn btn-outline-success" data-pay="' + esc(s.receiptNo) + '" title="Mark as paid"><i class="bi bi-cash-coin"></i></button>' +
+              '<button class="btn btn-outline-secondary" data-receipt="' + esc(s.receiptNo) + '" title="Receipt"><i class="bi bi-receipt"></i></button></div></td></tr>').join('')
+            : '<tr><td colspan="7" class="text-center text-secondary py-3">Every sale in this period is paid.</td></tr>';
+        } catch (err) { UI.showError(err); }
+      }
+
+      document.getElementById('unpaid-rows').addEventListener('click', async e => {
+        const pay = e.target.closest('[data-pay]');
+        const rec = e.target.closest('[data-receipt]');
+        if (rec) { UI.openReceipt(rec.dataset.receipt, false); return; }
+        if (pay && await UI.confirm('Mark receipt ' + pay.dataset.pay + ' as paid?', { title: 'Payment received', variant: 'success', okLabel: 'Yes, paid' })) {
+          try { await Api.post('/api/sales/receipt/' + encodeURIComponent(pay.dataset.pay) + '/paid', { paid: true }); UI.toast('Marked as paid.', 'success'); run(); }
+          catch (err) { UI.showError(err); }
+        }
+      });
+
+      presets.addEventListener('click', e => {
+        const b = e.target.closest('[data-period]');
+        if (!b) return;
+        const d = UI.periodDates(b.dataset.period);
+        fromInput.value = d.from;
+        toInput.value = d.to;
+        markPreset(b.dataset.period);
+        run();
+      });
+      [fromInput, toInput].forEach(el => el.addEventListener('change', () => markPreset(null)));
+      document.getElementById('run').addEventListener('click', run);
+      document.getElementById('print').addEventListener('click', () => window.print());
+      document.getElementById('pdf').addEventListener('click', () => {
+        const qs = new URLSearchParams(UI.dateRange(fromInput.value, toInput.value)).toString();
+        location.href = '/api/reports/sales/pdf' + (qs ? '?' + qs : '');   // the browser downloads the file
+      });
+      emailBtn.addEventListener('click', async () => {
+        UI.setLoading(emailBtn, true);
+        try {
+          const r = await Api.post('/api/reports/sales/email?' + new URLSearchParams(UI.dateRange(fromInput.value, toInput.value)).toString(), null, { silent: true });
+          UI.toast('Report sent to ' + r.sentTo, 'success');
+        } catch (err) {
+          UI.showError(err);
+          if (err.code === 'REPORT_EMAIL_MISSING' || err.code === 'MAIL_NOT_CONFIGURED') setTimeout(() => { location.href = '/settings.html#email'; }, 1500);
+        } finally { UI.setLoading(emailBtn, false); }
+      });
+
+      try {
+        const s = await Api.get('/api/settings');
+        document.getElementById('company').textContent = s.companyName;
+        if (s.logoUrl) { const img = document.getElementById('logo'); img.src = s.logoUrl; img.hidden = false; }
+      } catch (e) { /* keep default */ }
+      const initial = UI.periodDates('today');
+      fromInput.value = initial.from;
+      toInput.value = initial.to;
+      markPreset('today');
+      run();
+    });
+  </script>
+</body>
+</html>

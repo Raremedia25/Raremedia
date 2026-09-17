@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/theo_tech
+    username: postgres
+    password: ${APP_DB_PASSWORD:theotech}
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

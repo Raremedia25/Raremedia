@@ -1,0 +1,15 @@
+D:\theo-tech-system\src\test\java\com\theotech\catalog\ProductImageIT.java
+D:\theo-tech-system\src\test\java\com\theotech\catalog\ProductStockIT.java
+D:\theo-tech-system\src\test\java\com\theotech\common\exception\GlobalExceptionHandlerTest.java
+D:\theo-tech-system\src\test\java\com\theotech\common\web\PageParamsTest.java
+D:\theo-tech-system\src\test\java\com\theotech\dashboard\DashboardReportIT.java
+D:\theo-tech-system\src\test\java\com\theotech\expenses\ExpensesIT.java
+D:\theo-tech-system\src\test\java\com\theotech\iam\WorkersIT.java
+D:\theo-tech-system\src\test\java\com\theotech\reports\DailyReportSchedulerTest.java
+D:\theo-tech-system\src\test\java\com\theotech\reports\ReportEmailIT.java
+D:\theo-tech-system\src\test\java\com\theotech\reports\ReportPdfAndLogoIT.java
+D:\theo-tech-system\src\test\java\com\theotech\reports\service\DailyReportSchedulerTestAccess.java
+D:\theo-tech-system\src\test\java\com\theotech\sales\SalesIT.java
+D:\theo-tech-system\src\test\java\com\theotech\security\AuthServiceTest.java
+D:\theo-tech-system\src\test\java\com\theotech\security\SecurityIT.java
+D:\theo-tech-system\src\test\java\com\theotech\TestAuth.java

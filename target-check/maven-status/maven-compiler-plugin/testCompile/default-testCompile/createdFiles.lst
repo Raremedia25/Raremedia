@@ -1,0 +1,17 @@
+com\theotech\dashboard\DashboardReportIT.class
+com\theotech\common\exception\GlobalExceptionHandlerTest.class
+com\theotech\common\exception\GlobalExceptionHandlerTest$ThrowingController.class
+com\theotech\sales\SalesIT.class
+com\theotech\reports\service\DailyReportSchedulerTestAccess.class
+com\theotech\TestAuth.class
+com\theotech\security\SecurityIT.class
+com\theotech\reports\DailyReportSchedulerTest.class
+com\theotech\common\exception\GlobalExceptionHandlerTest$ThrowingController$Body.class
+com\theotech\expenses\ExpensesIT.class
+com\theotech\security\AuthServiceTest.class
+com\theotech\catalog\ProductImageIT.class
+com\theotech\iam\WorkersIT.class
+com\theotech\common\web\PageParamsTest.class
+com\theotech\reports\ReportEmailIT.class
+com\theotech\catalog\ProductStockIT.class
+com\theotech\reports\ReportPdfAndLogoIT.class

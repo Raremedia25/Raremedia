@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Expenses · THEO TECH LTD</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css?v=10">
+  <script src="/js/theme.js?v=10"></script>
+</head>
+<body data-page="expenses" data-title="Expenses" data-admin>
+  <div id="app-content" hidden>
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-4">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Expenses in this view</div>
+          <div class="tt-stat-value" id="sum-count">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="card tt-stat-card h-100 border-danger"><div class="card-body">
+          <div class="tt-stat-label">Total spent</div>
+          <div class="tt-stat-value tt-money text-danger" id="sum-total">—</div>
+        </div></div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Tip</div>
+          <div class="small text-secondary mt-1">Record rent, transport, airtime, stock purchases… The report shows sales minus expenses for the same period.</div>
+        </div></div>
+      </div>
+    </div>
+    <div id="expenses-table"></div>
+  </div>
+
+  <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js?v=10"></script>
+  <script src="/js/ui.js?v=10"></script>
+  <script src="/js/auth.js?v=10"></script>
+  <script src="/js/datatable.js?v=10"></script>
+  <script src="/js/layout.js?v=10"></script>
+  <script>
+    document.addEventListener('app:ready', async () => {
+      const esc = UI.escapeHtml;
+      const params = new URLSearchParams(location.search);
+      let categories = [];
+
+      const dt = new DataTable(document.getElementById('expenses-table'), {
+        url: '/api/expenses',
+        sort: 'spentOn,desc',
+        searchPlaceholder: 'Search description, category…',
+        columns: [
+          { key: 'spentOn', label: 'Date', sortable: true, className: 'text-nowrap', render: e => esc(UI.date(e.spentOn)) },
+          { key: 'category', label: 'Category', sortable: true, render: e => UI.badge(e.category, 'primary') },
+          { key: 'description', label: 'Description', sortable: true, render: e => '<span class="fw-semibold">' + esc(e.description) + '</span>' +
+              (e.note ? '<div class="small text-secondary">' + esc(e.note) + '</div>' : '') },
+          { key: 'amount', label: 'Amount', sortable: true, className: 'text-end tt-money fw-semibold', render: e => esc(UI.money(e.amount)) },
+          { key: 'recordedByName', label: 'By', className: 'd-none d-lg-table-cell small text-secondary', render: e => esc(e.recordedByName || '') },
+          { key: 'actions', label: '', className: 'text-end text-nowrap', render: () =>
+              '<div class="btn-group btn-group-sm">' +
+                '<button class="btn btn-outline-primary" data-action="edit" title="Edit"><i class="bi bi-pencil"></i></button>' +
+                '<button class="btn btn-outline-danger" data-action="delete" title="Delete"><i class="bi bi-trash"></i></button>' +
+              '</div>' }
+        ],
+        query: () => ({ from: fromInput.value, to: toInput.value, category: categoryFilter.value }),
+        onLoad: data => {
+          document.getElementById('sum-count').textContent = UI.number(data.totalElements);
+          document.getElementById('sum-total').textContent = UI.money(data.totalAmount);
+        },
+        onAction: async (action, e) => {
+          if (action === 'edit') openForm(e);
+          if (action === 'delete' && await UI.confirm('Delete this expense (' + e.description + ', ' + UI.money(e.amount) + ')?', { okLabel: 'Delete' })) {
+            try { await Api.del('/api/expenses/' + e.id); UI.toast('Expense deleted.', 'success'); refresh(); }
+            catch (err) { UI.showError(err); }
+          }
+        }
+      });
+
+      const presets = dt.addFilter(
+        '<div class="btn-group btn-group-sm" role="group">' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="today">Today</button>' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="week">This week</button>' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="month">This month</button>' +
+          '<button type="button" class="btn btn-outline-secondary" data-period="all">All</button>' +
+        '</div>');
+      const fromInput = dt.addFilter('<input type="date" class="form-control form-control-sm w-auto" title="From">');
+      const toInput = dt.addFilter('<input type="date" class="form-control form-control-sm w-auto" title="To">');
+      const categoryFilter = dt.addFilter('<select class="form-select form-select-sm w-auto"></select>');
+      dt.addToolbarButton('<button class="btn btn-primary btn-sm" id="add"><i class="bi bi-plus-lg me-1"></i>Add expense</button>')
+        .addEventListener('click', () => openForm(null));
+
+      function markPreset(name) {
+        presets.querySelectorAll('[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === name));
+      }
+      presets.addEventListener('click', e => {
+        const b = e.target.closest('[data-period]');
+        if (!b) return;
+        const d = UI.periodDates(b.dataset.period);
+        fromInput.value = d.from;
+        toInput.value = d.to;
+        markPreset(b.dataset.period);
+        dt.reload(true);
+      });
+      [fromInput, toInput].forEach(el => el.addEventListener('change', () => { markPreset(null); dt.reload(true); }));
+      categoryFilter.addEventListener('change', () => dt.reload(true));
+
+      async function loadCategories() {
+        try { categories = await Api.get('/api/expenses/categories'); } catch (e) { categories = []; }
+        const v = categoryFilter.value;
+        categoryFilter.innerHTML = UI.options(categories.map(c => ({ value: c, label: c })), v, 'All categories');
+      }
+      function refresh() { dt.reload(); loadCategories(); }
+
+      function openForm(e) {
+        const today = UI.periodDates('today').from;
+        const m = UI.modal({
+          title: e ? 'Edit expense' : 'Add expense',
+          body:
+            '<div class="row g-3">' +
+              '<div class="col-sm-5"><label class="form-label">Date</label><input class="form-control" name="spentOn" type="date" required max="' + today + '"></div>' +
+              '<div class="col-sm-7"><label class="form-label">Category</label>' +
+                '<input class="form-control" name="category" list="cat-list" maxlength="60" required placeholder="Rent, Transport, Airtime, Stock…">' +
+                '<datalist id="cat-list">' + categories.map(c => '<option value="' + esc(c) + '">').join('') + '</datalist></div>' +
+              '<div class="col-12"><label class="form-label">Description</label><input class="form-control" name="description" maxlength="200" required placeholder="What was the money spent on"></div>' +
+              '<div class="col-sm-6"><label class="form-label">Amount (RWF)</label><input class="form-control" name="amount" type="number" min="1" step="1" inputmode="numeric" required></div>' +
+              '<div class="col-12"><label class="form-label">Note <span class="text-secondary fw-normal">(optional)</span></label><input class="form-control" name="note" maxlength="500"></div>' +
+            '</div>',
+          onSubmit: async (values, form, handle) => {
+            if (e) { await Api.put('/api/expenses/' + e.id, values, { silent: true }); UI.toast('Expense updated.', 'success'); }
+            else { await Api.post('/api/expenses', values, { silent: true }); UI.toast('Expense added.', 'success'); }
+            handle.hide();
+            refresh();
+          }
+        });
+        UI.fillForm(m.form, e ? { spentOn: e.spentOn, category: e.category, description: e.description, amount: e.amount, note: e.note } : { spentOn: today });
+      }
+
+      const initial = UI.periodDates(params.get('period') || 'month');
+      fromInput.value = initial.from;
+      toInput.value = initial.to;
+      markPreset(params.get('period') || 'month');
+      await loadCategories();
+      dt.reload();
+      if (params.get('add') === '1') openForm(null);
+    });
+  </script>
+</body>
+</html>

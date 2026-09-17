@@ -28,4 +28,4 @@ services:
         value: Africa/Kigali
       - key: JAVA_OPTS
         # the free instance has 512 MB: small heap, serial GC, quick JIT so start-up fits the health-check window
-        value: -Xmx280m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Dspring.jmx.enabled=false
+        value: -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=48m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false
