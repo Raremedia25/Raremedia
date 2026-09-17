@@ -7,8 +7,8 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
   <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="/css/app.css?v=8">
-  <script src="/js/theme.js?v=8"></script>
+  <link rel="stylesheet" href="/css/app.css?v=10">
+  <script src="/js/theme.js?v=10"></script>
 </head>
 <body data-page="reports" data-title="Sales Report" data-admin>
   <div id="app-content" hidden>
@@ -24,6 +24,7 @@
       <input type="date" class="form-control form-control-sm w-auto" id="to" title="To">
       <button class="btn btn-primary btn-sm" id="run"><i class="bi bi-play-fill me-1"></i>Show</button>
       <div class="ms-auto d-flex gap-2">
+        <button class="btn btn-primary btn-sm" id="pdf" title="Download this report as a PDF with the shop logo"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
         <button class="btn btn-outline-primary btn-sm" id="email" title="Send this report to the e-mail address in Settings"><i class="bi bi-envelope me-1"></i>E-mail report</button>
         <button class="btn btn-outline-secondary btn-sm" id="print"><i class="bi bi-printer me-1"></i>Print</button>
       </div>
@@ -50,12 +51,25 @@
           <div class="tt-stat-label">Not paid</div><div class="tt-stat-value tt-money text-danger" id="k-unpaid">—</div>
         </div></div>
       </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100"><div class="card-body">
+          <div class="tt-stat-label">Expenses</div><div class="tt-stat-value tt-money" id="k-expenses">—</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card tt-stat-card h-100 border-success"><div class="card-body">
+          <div class="tt-stat-label">Sales minus expenses</div><div class="tt-stat-value tt-money" id="k-net">—</div>
+        </div></div>
+      </div>
     </div>
 
     <div class="card shadow-sm mb-3">
-      <div class="card-header">
-        <div class="fw-semibold" id="company">THEO TECH LTD</div>
-        <div class="small text-secondary">Sales report · <span id="range"></span></div>
+      <div class="card-header d-flex align-items-center gap-3">
+        <img id="logo" class="tt-logo-img" alt="" hidden>
+        <div>
+          <div class="fw-semibold" id="company">THEO TECH LTD</div>
+          <div class="small text-secondary">Sales report · <span id="range"></span></div>
+        </div>
       </div>
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -79,6 +93,20 @@
       </div>
     </div>
 
+    <div class="card shadow-sm mb-3">
+      <div class="card-header d-flex align-items-center">
+        <span class="fw-semibold"><i class="bi bi-wallet2 me-2 text-warning"></i>Expenses in this period</span>
+        <a class="btn btn-link btn-sm ms-auto tt-no-print" href="/expenses.html">Manage expenses</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Category</th><th class="text-end">Entries</th><th class="text-end">Amount</th></tr></thead>
+          <tbody id="expense-rows"></tbody>
+          <tfoot class="table-light fw-bold"><tr><td>TOTAL</td><td></td><td class="text-end tt-money" id="expense-total">RWF 0</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
     <div class="card shadow-sm">
       <div class="card-header d-flex align-items-center">
         <span class="fw-semibold text-danger-emphasis"><i class="bi bi-exclamation-circle me-2"></i>Not paid in this period</span>
@@ -94,10 +122,10 @@
   </div>
 
   <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-  <script src="/js/api.js?v=8"></script>
-  <script src="/js/ui.js?v=8"></script>
-  <script src="/js/auth.js?v=8"></script>
-  <script src="/js/layout.js?v=8"></script>
+  <script src="/js/api.js?v=10"></script>
+  <script src="/js/ui.js?v=10"></script>
+  <script src="/js/auth.js?v=10"></script>
+  <script src="/js/layout.js?v=10"></script>
   <script>
     document.addEventListener('app:ready', async () => {
       const esc = UI.escapeHtml;
@@ -120,6 +148,15 @@
           document.getElementById('k-total').textContent = UI.money(r.totalSales);
           document.getElementById('k-paid').textContent = UI.money(r.totalPaid);
           document.getElementById('k-unpaid').textContent = UI.money(r.totalUnpaid);
+          document.getElementById('k-expenses').textContent = UI.money(r.totalExpenses);
+          const net = document.getElementById('k-net');
+          net.textContent = UI.money(r.netAfterExpenses);
+          net.className = 'tt-stat-value tt-money ' + (Number(r.netAfterExpenses) >= 0 ? 'text-success' : 'text-danger');
+          document.getElementById('expense-rows').innerHTML = r.expensesByCategory.length ? r.expensesByCategory.map(c =>
+            '<tr><td class="fw-semibold">' + esc(c.category) + '</td><td class="text-end">' + esc(UI.number(c.count)) + '</td>' +
+            '<td class="text-end tt-money">' + esc(UI.money(c.total)) + '</td></tr>').join('')
+            : '<tr><td colspan="3" class="text-center text-secondary py-3">No expenses recorded in this period.</td></tr>';
+          document.getElementById('expense-total').textContent = UI.money(r.totalExpenses);
 
           const rows = document.getElementById('rows');
           rows.innerHTML = r.rows.length ? r.rows.map(row =>
@@ -168,6 +205,10 @@
       [fromInput, toInput].forEach(el => el.addEventListener('change', () => markPreset(null)));
       document.getElementById('run').addEventListener('click', run);
       document.getElementById('print').addEventListener('click', () => window.print());
+      document.getElementById('pdf').addEventListener('click', () => {
+        const qs = new URLSearchParams(UI.dateRange(fromInput.value, toInput.value)).toString();
+        location.href = '/api/reports/sales/pdf' + (qs ? '?' + qs : '');   // the browser downloads the file
+      });
       emailBtn.addEventListener('click', async () => {
         UI.setLoading(emailBtn, true);
         try {
@@ -179,7 +220,11 @@
         } finally { UI.setLoading(emailBtn, false); }
       });
 
-      try { const s = await Api.get('/api/settings'); document.getElementById('company').textContent = s.companyName; } catch (e) { /* keep default */ }
+      try {
+        const s = await Api.get('/api/settings');
+        document.getElementById('company').textContent = s.companyName;
+        if (s.logoUrl) { const img = document.getElementById('logo'); img.src = s.logoUrl; img.hidden = false; }
+      } catch (e) { /* keep default */ }
       const initial = UI.periodDates('today');
       fromInput.value = initial.from;
       toInput.value = initial.to;

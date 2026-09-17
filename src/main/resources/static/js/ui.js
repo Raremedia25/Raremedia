@@ -18,6 +18,8 @@ window.UI = (function () {
     time: 'Use the 24-hour form HH:MM, e.g. 20:00',
     imageType: 'Only JPEG, PNG, WebP or GIF pictures are accepted',
     imageSize: 'The picture must be smaller than 2 MB',
+    logoType: 'The logo must be a JPEG, PNG or GIF picture',
+    logoSize: 'The logo must be smaller than 1 MB',
     passwordLength: 'Password must be between 8 and 100 characters',
     passwordComplexity: 'Password must contain both letters and digits',
     passwordIncorrect: 'The current password is incorrect',

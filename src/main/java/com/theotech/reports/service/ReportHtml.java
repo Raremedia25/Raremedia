@@ -38,6 +38,10 @@ final class ReportHtml {
         box(h, "Paid", money(r.totalPaid()), "#15803d");
         box(h, "Not paid", money(r.totalUnpaid()), r.totalUnpaid().signum() > 0 ? "#b91c1c" : "#6b7280");
         h.append("</tr></table>");
+        h.append("<table cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse:collapse;width:100%;margin-bottom:18px\"><tr>");
+        box(h, "Expenses", money(r.totalExpenses()), r.totalExpenses().signum() > 0 ? "#b45309" : "#6b7280");
+        box(h, "Sales minus expenses", money(r.netAfterExpenses()), r.netAfterExpenses().signum() >= 0 ? "#15803d" : "#b91c1c");
+        h.append("<td style=\"width:50%\"></td></tr></table>");
 
         h.append("<h3 style=\"margin:18px 0 6px\">Sales per product</h3>");
         if (r.rows().isEmpty()) {
@@ -80,6 +84,22 @@ final class ReportHtml {
                  .append("<td style=\"").append(TD).append(NUM).append("color:#b91c1c\">").append(money(s.total())).append("</td></tr>");
             }
             h.append("</table>");
+        }
+
+        h.append("<h3 style=\"margin:18px 0 6px\">Expenses</h3>");
+        if (r.expensesByCategory().isEmpty()) {
+            h.append("<p style=\"color:#6b7280\">No expenses recorded in this period.</p>");
+        } else {
+            h.append("<table cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse:collapse;width:100%\">")
+             .append("<tr><th style=\"").append(TH).append("\">Category</th><th style=\"").append(TH).append(NUM).append("\">Entries</th>")
+             .append("<th style=\"").append(TH).append(NUM).append("\">Amount</th></tr>");
+            for (var c : r.expensesByCategory()) {
+                h.append("<tr><td style=\"").append(TD).append("\"><b>").append(esc(c.category())).append("</b></td>")
+                 .append("<td style=\"").append(TD).append(NUM).append("\">").append(c.count()).append("</td>")
+                 .append("<td style=\"").append(TD).append(NUM).append("\">").append(money(c.total())).append("</td></tr>");
+            }
+            h.append("<tr><td style=\"").append(TD).append("\"><b>TOTAL</b></td><td style=\"").append(TD).append("\"></td>")
+             .append("<td style=\"").append(TD).append(NUM).append("\"><b>").append(money(r.totalExpenses())).append("</b></td></tr></table>");
         }
 
         h.append("<h3 style=\"margin:18px 0 6px\">Low stock</h3>");

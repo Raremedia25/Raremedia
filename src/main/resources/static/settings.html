@@ -7,8 +7,8 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
   <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="/css/app.css?v=8">
-  <script src="/js/theme.js?v=8"></script>
+  <link rel="stylesheet" href="/css/app.css?v=10">
+  <script src="/js/theme.js?v=10"></script>
 </head>
 <body data-page="settings" data-title="Settings" data-admin>
   <div id="app-content" hidden>
@@ -37,6 +37,21 @@
                 <div class="form-text">Products with this many units or fewer are shown as LOW STOCK on the dashboard and stock page. Default 5.</div>
               </div>
               <button class="btn btn-primary" type="submit" id="save-btn"><i class="bi bi-check2 me-1"></i>Save</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header fw-semibold"><i class="bi bi-image me-2 text-primary"></i>Shop logo</div>
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div id="logo-preview"></div>
+              <div class="small text-secondary">Shown in the sidebar, on the login page, on receipts and on the PDF report. JPEG, PNG or GIF, up to 1 MB. A wide logo on a white or transparent background looks best.</div>
+            </div>
+            <form id="logo-form" class="d-flex flex-wrap align-items-center gap-2" novalidate>
+              <input class="form-control w-auto" type="file" name="file" id="logo-file" accept="image/jpeg,image/png,image/gif" required>
+              <button class="btn btn-primary" type="submit" id="logo-upload"><i class="bi bi-upload me-1"></i>Upload</button>
+              <button class="btn btn-outline-danger" type="button" id="logo-delete" hidden><i class="bi bi-trash me-1"></i>Remove</button>
             </form>
           </div>
         </div>
@@ -121,16 +136,47 @@
   </div>
 
   <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-  <script src="/js/api.js?v=8"></script>
-  <script src="/js/ui.js?v=8"></script>
-  <script src="/js/auth.js?v=8"></script>
-  <script src="/js/layout.js?v=8"></script>
+  <script src="/js/api.js?v=10"></script>
+  <script src="/js/ui.js?v=10"></script>
+  <script src="/js/auth.js?v=10"></script>
+  <script src="/js/layout.js?v=10"></script>
   <script>
     document.addEventListener('app:ready', async e => {
       const form = document.getElementById('settings-form');
       const btn = document.getElementById('save-btn');
       document.getElementById('who').textContent = e.detail.me.fullName + ' (' + e.detail.me.username + ')';
-      try { UI.fillForm(form, await Api.get('/api/settings')); } catch (err) { UI.showError(err); }
+
+      // ---- logo --------------------------------------------------------------------------------
+      const logoForm = document.getElementById('logo-form');
+      const logoDelete = document.getElementById('logo-delete');
+      function showLogo(s) {
+        document.getElementById('logo-preview').innerHTML = s.logoUrl
+          ? '<img src="' + UI.escapeHtml(s.logoUrl) + '" class="tt-logo-img-lg rounded border bg-white p-1" alt="Shop logo">'
+          : '<span class="tt-logo-img-lg rounded border bg-body-tertiary d-inline-flex align-items-center justify-content-center text-secondary"><i class="bi bi-image fs-3"></i></span>';
+        logoDelete.hidden = !s.logoUrl;
+        document.dispatchEvent(new CustomEvent('settings:changed', { detail: s }));
+      }
+      try { const s = await Api.get('/api/settings'); UI.fillForm(form, s); showLogo(s); } catch (err) { UI.showError(err); }
+      logoForm.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const file = document.getElementById('logo-file').files[0];
+        if (!file) { UI.setFieldErrors(logoForm, { file: 'required' }); return; }
+        UI.clearFieldErrors(logoForm);
+        const btn = document.getElementById('logo-upload');
+        UI.setLoading(btn, true);
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          showLogo(await Api.upload('/api/settings/logo', fd, { silent: true }));
+          logoForm.reset();
+          UI.toast('Logo saved.', 'success');
+        } catch (err) { if (err.errors) UI.setFieldErrors(logoForm, err.errors); else UI.showError(err); }
+        finally { UI.setLoading(btn, false); }
+      });
+      logoDelete.addEventListener('click', async () => {
+        if (!await UI.confirm('Remove the shop logo?', { okLabel: 'Remove' })) return;
+        try { showLogo(await Api.del('/api/settings/logo')); UI.toast('Logo removed.', 'success'); } catch (err) { UI.showError(err); }
+      });
 
       form.addEventListener('submit', async ev => {
         ev.preventDefault();

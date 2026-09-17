@@ -20,6 +20,7 @@
   <properties>
     <java.version>25</java.version>
     <springdoc.version>3.1.1</springdoc.version>
+    <openpdf.version>2.2.2</openpdf.version>
     <!-- Integration tests (*IT) need the local PostgreSQL cluster; scripts\build.cmd flips this via -Pit-db -->
     <skipITs>true</skipITs>
     <!-- Overridable so several compiles can run side by side: -DbuildDir=... -->
@@ -72,6 +73,13 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>
+    </dependency>
+
+    <!-- PDF report (pure Java, no native code) -->
+    <dependency>
+      <groupId>com.github.librepdf</groupId>
+      <artifactId>openpdf</artifactId>
+      <version>${openpdf.version}</version>
     </dependency>
 
     <!-- API documentation -->

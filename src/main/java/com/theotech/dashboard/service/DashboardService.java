@@ -4,8 +4,11 @@ import com.theotech.catalog.domain.Product;
 import com.theotech.catalog.dto.ProductResponse;
 import com.theotech.catalog.repository.ProductRepository;
 import com.theotech.dashboard.dto.DashboardResponse;
+import com.theotech.expenses.repository.ExpenseRepository;
 import com.theotech.sales.repository.SaleRepository;
 import com.theotech.sales.service.SaleService;
+import com.theotech.security.AppUserPrincipal;
+import com.theotech.security.CurrentUser;
 import com.theotech.settings.service.SettingsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,14 +24,19 @@ public class DashboardService {
 
     private final ProductRepository products;
     private final SaleRepository sales;
+    private final ExpenseRepository expenses;
     private final SaleService saleService;
     private final SettingsService settings;
+    private final CurrentUser currentUser;
 
-    public DashboardService(ProductRepository products, SaleRepository sales, SaleService saleService, SettingsService settings) {
+    public DashboardService(ProductRepository products, SaleRepository sales, ExpenseRepository expenses,
+                            SaleService saleService, SettingsService settings, CurrentUser currentUser) {
         this.products = products;
         this.sales = sales;
+        this.expenses = expenses;
         this.saleService = saleService;
         this.settings = settings;
+        this.currentUser = currentUser;
     }
 
     public DashboardResponse summary() {
@@ -45,8 +53,11 @@ public class DashboardService {
                 .sorted(Comparator.comparing(Product::getName))
                 .map(p -> ProductResponse.from(p, threshold)).toList();
 
+        AppUserPrincipal me = currentUser.principalOrNull();
+        BigDecimal spent = me != null && me.hasRole("ADMIN") ? money(expenses.totalAmount()) : null;
+
         return new DashboardResponse(all.size(), inStock, sales.totalQuantity().longValue(), money(sales.totalAmount()),
-                sales.countByPaidFalse(), money(sales.unpaidAmount()),
+                sales.countByPaidFalse(), money(sales.unpaidAmount()), spent,
                 threshold, low, out, saleService.recent());
     }
 

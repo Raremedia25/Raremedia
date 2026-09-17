@@ -58,6 +58,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login.html", "/css/**", "/js/**", "/vendor/**", "/favicon.ico", "/error").permitAll()
                 .requestMatchers("/api/auth/login", "/api/auth/csrf", "/actuator/health").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/settings/logo").permitAll()   // login page shows it
                 .anyRequest().authenticated())
             .formLogin(form -> form
                 .loginPage("/login.html")

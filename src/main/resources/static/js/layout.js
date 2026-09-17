@@ -16,6 +16,7 @@ window.Layout = (function () {
       { key: 'sales', href: '/sales.html', label: 'Sales History' }
     ] },
     { key: 'stock', href: '/stock.html', icon: 'bi-clipboard-data', label: 'Stock' },
+    { key: 'expenses', href: '/expenses.html', icon: 'bi-wallet2', label: 'Expenses', admin: true },
     { key: 'reports', href: '/reports.html', icon: 'bi-graph-up', label: 'Reports', admin: true },
     { key: 'workers', href: '/workers.html', icon: 'bi-people', label: 'Workers', admin: true },
     { key: 'settings', href: '/settings.html', icon: 'bi-gear', label: 'Settings', admin: true }
@@ -47,7 +48,7 @@ window.Layout = (function () {
     return (
       '<div class="tt-app">' +
         '<aside class="tt-sidebar">' +
-          '<a class="tt-logo" href="/index.html"><i class="bi bi-cpu"></i><span id="tt-company">THEO TECH LTD</span></a>' +
+          '<a class="tt-logo" href="/index.html"><i class="bi bi-cpu" id="tt-logo-icon"></i><img id="tt-logo-img" class="tt-logo-img" alt="" hidden><span id="tt-company">THEO TECH LTD</span></a>' +
           '<div class="tt-tagline">Electronics Sales &amp; Stock</div>' +
           '<nav class="nav flex-column">' + renderNav(activeKey) + '</nav>' +
           '<div class="mt-auto p-3 small text-secondary"><i class="bi bi-person-circle me-1"></i>' + esc(me.fullName) +
@@ -101,13 +102,23 @@ window.Layout = (function () {
         case 'close-sidebar': document.body.classList.remove('tt-sidebar-open'); break;
       }
     });
-    document.addEventListener('settings:changed', e => { if (e.detail && e.detail.companyName) setCompany(e.detail.companyName); });
+    document.addEventListener('settings:changed', e => { if (e.detail) applySettings(e.detail); });
   }
 
   function setCompany(name) {
     const el = document.getElementById('tt-company');
     if (el && name) el.textContent = name;
     document.title = document.title.replace(/·.*$/, '· ' + name);
+  }
+
+  /** Shop name in the sidebar and title; the shop logo replaces the chip icon when one is uploaded. */
+  function applySettings(s) {
+    if (s.companyName) setCompany(s.companyName);
+    const img = document.getElementById('tt-logo-img');
+    const icon = document.getElementById('tt-logo-icon');
+    if (!img || !icon) return;
+    if (s.logoUrl) { img.src = s.logoUrl; img.hidden = false; icon.hidden = true; }
+    else { img.hidden = true; img.removeAttribute('src'); icon.hidden = false; }
   }
 
   async function init() {
@@ -146,7 +157,7 @@ window.Layout = (function () {
       showFailure(e);
       return;
     }
-    try { const s = await Api.get('/api/settings', { silent: true }); setCompany(s.companyName); } catch (e) { /* default name stays */ }
+    try { applySettings(await Api.get('/api/settings', { silent: true })); } catch (e) { /* default name stays */ }
   }
 
   return { init, NAV };

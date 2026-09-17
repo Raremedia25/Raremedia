@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7eIeNodP6ka6Q0JyWBu6Imxn2KieMzi4I3xyAj40sAepvFRM5Tm9xe54ThgVKr3
+\restrict hPa2CtQdKY4O2z72ytmqDE2uaAXDtwuLRdymU4OI2FGQcwJIcGKLfflWyxL0ufk
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -93,6 +93,43 @@ CREATE SEQUENCE public.categories_id_seq
 --
 
 ALTER SEQUENCE public.categories_id_seq OWNED BY public.categories.id;
+
+
+--
+-- Name: expenses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.expenses (
+    id bigint NOT NULL,
+    spent_on date NOT NULL,
+    category text NOT NULL,
+    description text NOT NULL,
+    amount numeric(14,2) NOT NULL,
+    note text,
+    recorded_by bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT expenses_amount_check CHECK ((amount > (0)::numeric))
+);
+
+
+--
+-- Name: expenses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.expenses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: expenses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.expenses_id_seq OWNED BY public.expenses.id;
 
 
 --
@@ -327,6 +364,19 @@ CREATE TABLE public.settings (
 
 
 --
+-- Name: shop_logo; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shop_logo (
+    id smallint NOT NULL,
+    content bytea NOT NULL,
+    content_type text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT shop_logo_id_check CHECK ((id = 1))
+);
+
+
+--
 -- Name: user_roles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -401,6 +451,13 @@ ALTER TABLE ONLY public.categories ALTER COLUMN id SET DEFAULT nextval('public.c
 
 
 --
+-- Name: expenses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expenses ALTER COLUMN id SET DEFAULT nextval('public.expenses_id_seq'::regclass);
+
+
+--
 -- Name: permissions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -449,6 +506,14 @@ ALTER TABLE ONLY public.branches
 
 ALTER TABLE ONLY public.categories
     ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: expenses expenses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expenses
+    ADD CONSTRAINT expenses_pkey PRIMARY KEY (id);
 
 
 --
@@ -524,6 +589,14 @@ ALTER TABLE ONLY public.settings
 
 
 --
+-- Name: shop_logo shop_logo_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_logo
+    ADD CONSTRAINT shop_logo_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: user_roles user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -544,6 +617,20 @@ ALTER TABLE ONLY public.users
 --
 
 CREATE INDEX flyway_schema_history_s_idx ON public.flyway_schema_history USING btree (success);
+
+
+--
+-- Name: ix_expenses_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_expenses_category ON public.expenses USING btree (category);
+
+
+--
+-- Name: ix_expenses_spent_on; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_expenses_spent_on ON public.expenses USING btree (spent_on DESC, id DESC);
 
 
 --
@@ -668,6 +755,14 @@ ALTER TABLE ONLY public.categories
 
 
 --
+-- Name: expenses expenses_recorded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expenses
+    ADD CONSTRAINT expenses_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.users(id);
+
+
+--
 -- Name: product_images product_images_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -783,5 +878,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7eIeNodP6ka6Q0JyWBu6Imxn2KieMzi4I3xyAj40sAepvFRM5Tm9xe54ThgVKr3
+\unrestrict hPa2CtQdKY4O2z72ytmqDE2uaAXDtwuLRdymU4OI2FGQcwJIcGKLfflWyxL0ufk
 

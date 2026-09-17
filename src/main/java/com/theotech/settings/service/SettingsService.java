@@ -47,10 +47,12 @@ public class SettingsService {
 
     private final SettingRepository repository;
     private final CurrentUser currentUser;
+    private final LogoService logos;
 
-    public SettingsService(SettingRepository repository, CurrentUser currentUser) {
+    public SettingsService(SettingRepository repository, CurrentUser currentUser, LogoService logos) {
         this.repository = repository;
         this.currentUser = currentUser;
+        this.logos = logos;
     }
 
     public Optional<String> get(String key) {
@@ -88,7 +90,7 @@ public class SettingsService {
 
     public SettingsResponse current() {
         return new SettingsResponse(companyName(), getString(COMPANY_ADDRESS, ""),
-                getString(COMPANY_PHONE, ""), lowStockThreshold());
+                getString(COMPANY_PHONE, ""), lowStockThreshold(), logos.url());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
