@@ -6,6 +6,7 @@ COPY mvnw pom.xml ./
 COPY .mvn .mvn
 RUN chmod +x mvnw && ./mvnw -q -B --no-transfer-progress dependency:resolve dependency:resolve-plugins
 COPY src src
+COPY frontend frontend
 RUN ./mvnw -q -B --no-transfer-progress -DskipTests -DskipITs package
 
 # ---- runtime stage ---------------------------------------------------------------------

@@ -5,6 +5,11 @@ spring:
     password: ${APP_DB_PASSWORD:theotech}
   jpa:
     show-sql: false
+  web:
+    resources:
+      # serve the frontend straight from the folder while developing (edits show on refresh, no rebuild);
+      # the packaged copy in the jar is the fallback
+      static-locations: file:./frontend/,classpath:/static/
 
 logging:
   level:

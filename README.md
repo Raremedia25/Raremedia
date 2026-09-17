@@ -40,6 +40,10 @@ stock and sales history. Nothing else: no customers, suppliers, purchases, retur
 
 ## Repository layout
 
+Backend (Java, `src/`) and frontend (static HTML/JS/CSS, `frontend/`) are separate folders that talk only through
+the JSON API under `/api/**`. The backend serves the frontend from the same address, so the session cookie works
+without any cross-origin setup.
+
 ```
 mvnw.cmd / mvnw          Maven wrapper (downloads Maven itself; no Maven install needed)
 pom.xml
@@ -58,9 +62,12 @@ src\main\java\com\theotech
   reports\               sales per product for a period     (/api/reports/sales)
 src\main\resources
   application*.yml
-  db\migration\          Flyway migrations V1..V5 (ddl-auto=validate: Hibernate never alters the schema)
-  static\                the frontend: index / products / sell / sales / stock / reports / workers / settings + css/ js/ vendor/
+  db\migration\          Flyway migrations V1..V9 (ddl-auto=validate: Hibernate never alters the schema)
   demo\                  the twelve sample product pictures (SVG) inserted on first start in the dev profile
+frontend\                the frontend (separate from the Java backend): one HTML page per screen
+  index / products / sell / receipt / sales / stock / expenses / reports / workers / settings / login / change-password
+  css\app.css            js\ (api, ui, auth, layout, datatable, theme)      vendor\ (Bootstrap, icons; no CDN)
+  Packaged into the jar as classpath:/static/ by Maven; in the dev profile it is served straight from this folder.
 .removed-phase3\         the earlier, larger design (inventory ledger, audit, roles, brands…) kept for reference; not compiled
 ```
 

@@ -35,7 +35,8 @@ unless asked. Prefer removing over adding.
   add stock, pictures, settings update, workers, report). Everything else is open to any signed-in user (workers sell and look).
   Workers hold the seeded `SALES_STAFF` role; its permission rows are unused. Frontend: `Auth.isAdmin`, `data-admin` on
   elements/pages hides admin-only UI (the server still enforces it).
-- **Frontend**: one static page per screen in `src/main/resources/static`, English text written directly in the
+- **Frontend**: one static page per screen in the top-level `frontend/` folder (packaged as `classpath:/static/`
+  by the Maven resources config; served from disk in the dev profile), English text written directly in the
   HTML/JS, `<body data-page="x" data-title="Title">` + `<div id="app-content" hidden>` + the shared scripts
   (`api.js`, `ui.js`, `auth.js`, `layout.js`, optionally `datatable.js`). No CDN, no framework, no build step.
   Money via `UI.money()`, badges via `UI.stockBadge()`, pictures via `UI.thumb()`, forms via `UI.modal()`, uploads via `Api.upload()`.

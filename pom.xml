@@ -114,6 +114,17 @@
 
   <build>
     <directory>${buildDir}</directory>
+    <resources>
+      <!-- backend resources (application*.yml, Flyway migrations, demo pictures) -->
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- the frontend lives in its own top-level folder and is packaged as classpath:/static/ -->
+      <resource>
+        <directory>frontend</directory>
+        <targetPath>static</targetPath>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
