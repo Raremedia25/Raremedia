@@ -1,9 +1,9 @@
 com\theotech\security\CurrentUser.class
+com\theotech\reports\service\ReportExcel$Styles.class
 com\theotech\sales\repository\SaleQueryRepository.class
 com\theotech\dashboard\dto\DashboardResponse.class
 com\theotech\settings\dto\MailSettings.class
 com\theotech\common\domain\TimestampedEntity.class
-com\theotech\reports\service\ReportPdfService.class
 com\theotech\catalog\web\ProductController.class
 com\theotech\iam\domain\Permission.class
 com\theotech\settings\dto\SettingsResponse.class
@@ -19,8 +19,9 @@ com\theotech\iam\domain\User.class
 com\theotech\catalog\repository\CategoryRepository.class
 com\theotech\common\exception\ConflictException.class
 com\theotech\config\AppProperties.class
-com\theotech\reports\service\ReportPdfService$Pdf.class
+com\theotech\reports\service\ReportExportService$Export.class
 com\theotech\catalog\service\ProductService.class
+com\theotech\reports\service\ReportExcel.class
 com\theotech\reports\service\ReportPdf.class
 com\theotech\config\AppProperties$Security.class
 com\theotech\settings\domain\Setting.class
@@ -61,6 +62,7 @@ com\theotech\dashboard\web\DashboardController.class
 com\theotech\security\PasswordChangeRequiredFilter.class
 com\theotech\settings\service\LogoService.class
 com\theotech\expenses\dto\ExpenseRequest.class
+com\theotech\reports\service\ReportExportService.class
 com\theotech\security\dto\MeResponse.class
 com\theotech\security\AuthService.class
 com\theotech\sales\dto\SaleRequest.class

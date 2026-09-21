@@ -24,7 +24,13 @@
       <input type="date" class="form-control form-control-sm w-auto" id="to" title="To">
       <button class="btn btn-primary btn-sm" id="run"><i class="bi bi-play-fill me-1"></i>Show</button>
       <div class="ms-auto d-flex gap-2">
-        <button class="btn btn-primary btn-sm" id="pdf" title="Download this report as a PDF with the shop logo"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Download this report as a file"><i class="bi bi-download me-1"></i>Download</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item" type="button" id="pdf"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF (with shop logo)</button></li>
+            <li><button class="dropdown-item" type="button" id="excel"><i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Excel (.xlsx)</button></li>
+          </ul>
+        </div>
         <button class="btn btn-outline-primary btn-sm" id="email" title="Send this report to the e-mail address in Settings"><i class="bi bi-envelope me-1"></i>E-mail report</button>
         <button class="btn btn-outline-secondary btn-sm" id="print"><i class="bi bi-printer me-1"></i>Print</button>
       </div>
@@ -205,10 +211,12 @@
       [fromInput, toInput].forEach(el => el.addEventListener('change', () => markPreset(null)));
       document.getElementById('run').addEventListener('click', run);
       document.getElementById('print').addEventListener('click', () => window.print());
-      document.getElementById('pdf').addEventListener('click', () => {
+      function download(kind) {
         const qs = new URLSearchParams(UI.dateRange(fromInput.value, toInput.value)).toString();
-        location.href = '/api/reports/sales/pdf' + (qs ? '?' + qs : '');   // the browser downloads the file
-      });
+        location.href = '/api/reports/sales/' + kind + (qs ? '?' + qs : '');   // the browser downloads the file
+      }
+      document.getElementById('pdf').addEventListener('click', () => download('pdf'));
+      document.getElementById('excel').addEventListener('click', () => download('excel'));
       emailBtn.addEventListener('click', async () => {
         UI.setLoading(emailBtn, true);
         try {

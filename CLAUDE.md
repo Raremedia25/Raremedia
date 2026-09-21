@@ -49,6 +49,7 @@ unless asked. Prefer removing over adding.
 ## Package layout (feature-first, layered inside)
 `com.theotech.<feature>.{domain,repository,service,web,dto}` — features: `catalog` (categories, products),
 `sales`, `expenses` (admin-only, dated by calendar day; report shows sales − expenses), `dashboard`, `reports`
-(screen JSON, PDF via OpenPDF `com.lowagie.text`, HTML e-mail), `settings` (incl. shop logo, `shop_logo` table),
+(screen JSON, PDF via OpenPDF `com.lowagie.text`, Excel via Apache POI `ReportExcel`, HTML e-mail; all admin-only through
+`ReportExportService`), `settings` (incl. shop logo, `shop_logo` table),
 `iam` (login + workers), plus `security`, `common`, `config`
 (`config.DemoDataSeeder`: dev-profile sample products with the SVGs in `resources/demo`, runs once).

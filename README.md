@@ -19,7 +19,7 @@ Bootstrap 5.3 + vanilla JavaScript (no build step, no CDN — works offline on a
 | Receipt | Printable ticket per sale: receipt number, date, all items, total, PAID / NOT PAID stamp, customer (`receipt.html?no=000123`) |
 | Sales History | Every sale with date filters (today / week / month / custom), paid / not paid filter, search by product or customer, totals and amount still owed; mark a sale paid; open its receipt |
 | Stock | Stock · Sold · Available per product with AVAILABLE / LOW STOCK / OUT OF STOCK badges; "+ Add Stock" |
-| Reports | Sales per product for a period (sold, sales, not paid, remaining stock) plus paid / not paid totals and the list of who still owes; **Download PDF** (A4, with the shop logo), printable, **E-mail report** button |
+| Reports | Admin only. Sales per product for a period (sold, sales, not paid, remaining stock) plus paid / not paid totals, expenses and the list of who still owes; **Download** as **PDF** (A4, with the shop logo) or **Excel** (.xlsx, one sheet per table, headers and borders); printable; **E-mail report** button |
 | Expenses | Admin records what the shop spends (date, category, description, amount); filters by period and category with totals; the report shows **sales minus expenses** |
 | Workers | The admin adds worker accounts (name, username, first password), disables, resets or removes them |
 | Settings | Shop name and contact details, **shop logo** (sidebar, login page, receipts, PDF), low-stock level (default 5), change password; **E-mail reports**: your address, a daily report at a set time, and the mail account (SMTP) that sends it |
@@ -100,7 +100,7 @@ POST   /api/sales  { "items": [ { "productId": 5, "quantity": 3 }, … ], "paid"
        (or a single "productId"/"quantity"; paid defaults to true; answers with the receipt and its lines)
 POST   /api/sales/receipt/{no}/paid  { "paid": true }     POST /api/sales/{id}/paid  (pays the receipt the line belongs to)
 GET    /api/dashboard
-GET    /api/reports/sales?from&to            GET /api/reports/sales/pdf?from&to (download)   POST /api/reports/sales/email?from&to   (admin)
+GET    /api/reports/sales?from&to            GET /api/reports/sales/pdf   GET /api/reports/sales/excel   POST /api/reports/sales/email   (all admin)
 GET/PUT /api/settings                        GET/PUT /api/settings/mail   POST /api/settings/mail/test   (admin)
 GET    /api/settings/logo (public image)     POST /api/settings/logo (multipart "file", jpeg/png/gif ≤ 1 MB)   DELETE /api/settings/logo   (admin)
 GET    /api/expenses?from&to&category&q&page&size&sort   GET /api/expenses/categories   POST/PUT/DELETE /api/expenses[/{id}]   (admin)
