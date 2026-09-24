@@ -36,7 +36,8 @@ public class SaleController {
 
     /**
      * Sales history (one row per line sold): {@code ?from&to} (ISO instants, {@code to} exclusive), {@code ?q} product
-     * or customer name, {@code ?paid=true|false}, paging and sort.
+     * or customer name, {@code ?paid=true|false}, {@code ?soldBy=<user id>} (one seller), paging and sort
+     * ({@code soldByName} sorts by the seller's name).
      */
     @GetMapping
     public ApiResponse<SalesHistoryResponse> history(
@@ -44,11 +45,12 @@ public class SaleController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Boolean paid,
+            @RequestParam(required = false) Long soldBy,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
         var pageable = PageParams.of(page, size, sort, SaleQueryRepository.SORTS, Sort.by(Sort.Direction.DESC, "soldAt"));
-        return ApiResponse.ok(service.history(from, to, q, paid, pageable));
+        return ApiResponse.ok(service.history(from, to, q, paid, soldBy, pageable));
     }
 
     @GetMapping("/{id}")

@@ -230,6 +230,39 @@ class SalesIT {
     }
 
     @Test
+    void adminCanFilterAndSortHistoryBySeller() throws Exception {
+        long cable = create("USB Cable", "3000", 40);
+        MvcResult created = mvc.perform(TestAuth.json(mvc, post("/api/workers"), admin,
+                        "{\"fullName\":\"Zed Worker\",\"username\":\"zed\",\"password\":\"Zed2026xx\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        long zedId = data(created).path("id").asLong();
+        MockHttpSession zed = TestAuth.login(mvc, "zed", "Zed2026xx");
+        mvc.perform(TestAuth.json(mvc, post("/api/auth/change-password"), zed,
+                        "{\"currentPassword\":\"Zed2026xx\",\"newPassword\":\"MyOwnPass9\"}"))
+                .andExpect(status().isOk());
+
+        mvc.perform(TestAuth.json(mvc, post("/api/sales"), admin, sale(cable, 1))).andExpect(status().isCreated());
+        mvc.perform(TestAuth.json(mvc, post("/api/sales"), zed, sale(cable, 5))).andExpect(status().isCreated());
+
+        // only the worker's sales, with totals of that slice
+        mvc.perform(get("/api/sales").session(admin).param("soldBy", String.valueOf(zedId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].soldByName").value("Zed Worker"))
+                .andExpect(jsonPath("$.data.content[0].quantity").value(5))
+                .andExpect(jsonPath("$.data.totalQuantity").value(5));
+        mvc.perform(get("/api/sales").session(admin).param("soldBy", "999999"))
+                .andExpect(jsonPath("$.data.totalElements").value(0));
+
+        // sorted by the seller's name ("Zed Worker" comes after the administrator's name)
+        mvc.perform(get("/api/sales").session(admin).param("sort", "soldByName,desc"))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.content[0].soldByName").value("Zed Worker"));
+        mvc.perform(get("/api/sales").session(admin).param("sort", "soldByName,asc"))
+                .andExpect(jsonPath("$.data.content[1].soldByName").value("Zed Worker"));
+    }
+
+    @Test
     void deletingAProductKeepsItsSalesHistory() throws Exception {
         long id = create("Old Phone", "50000", 2);
         mvc.perform(TestAuth.json(mvc, post("/api/sales"), admin, sale(id, 1))).andExpect(status().isCreated());

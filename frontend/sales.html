@@ -53,6 +53,7 @@
       const esc = UI.escapeHtml;
       const params = new URLSearchParams(location.search);
       let paidFilter = params.get('paid') || '';   // '' all, 'true', 'false'
+      let sellerFilter = params.get('soldBy') || ''; // '' everyone, or a user id (admin only)
 
       const dt = new DataTable(document.getElementById('sales-table'), {
         url: '/api/sales',
@@ -67,14 +68,16 @@
           { key: 'unitPrice', label: 'Unit price', sortable: true, className: 'text-end tt-money d-none d-md-table-cell', render: s => esc(UI.money(s.unitPrice)) },
           { key: 'total', label: 'Total', sortable: true, className: 'text-end tt-money fw-semibold', render: s => esc(UI.money(s.total)) },
           { key: 'paid', label: 'Payment', sortable: true, className: 'text-nowrap', render: s => UI.paidBadge(s.paid) },
-          { key: 'soldByName', label: 'By', className: 'd-none d-lg-table-cell small text-secondary', render: s => esc(s.soldByName || '') },
+          { key: 'soldByName', label: 'By', sortable: true, className: 'd-none d-lg-table-cell small text-secondary', render: s => esc(s.soldByName || '') },
           { key: 'actions', label: '', className: 'text-end text-nowrap', render: s =>
               '<div class="btn-group btn-group-sm">' +
                 (s.paid ? '' : '<button class="btn btn-outline-success" data-action="pay" title="Mark as paid"><i class="bi bi-cash-coin"></i></button>') +
                 '<button class="btn btn-outline-secondary" data-action="receipt" title="Receipt"><i class="bi bi-receipt"></i></button>' +
               '</div>' }
         ],
-        query: () => Object.assign(UI.dateRange(fromInput.value, toInput.value), paidFilter ? { paid: paidFilter } : {}),
+        query: () => Object.assign(UI.dateRange(fromInput.value, toInput.value),
+                                   paidFilter ? { paid: paidFilter } : {},
+                                   sellerFilter ? { soldBy: sellerFilter } : {}),
         onLoad: data => {
           document.getElementById('sum-count').textContent = UI.number(data.totalElements);
           document.getElementById('sum-qty').textContent = UI.number(data.totalQuantity);
@@ -111,6 +114,10 @@
           '<button type="button" class="btn btn-outline-success" data-paid="true">Paid</button>' +
           '<button type="button" class="btn btn-outline-danger" data-paid="false">Not paid</button>' +
         '</div>');
+      // Seller filter: only the administrator can list the workers, so workers do not get this control.
+      const sellerSelect = Auth.isAdmin
+        ? dt.addFilter('<select class="form-select form-select-sm w-auto" title="Seller"><option value="">All sellers</option></select>')
+        : null;
 
       function markPreset(name) {
         presets.querySelectorAll('[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === name));
@@ -135,6 +142,22 @@
         dt.reload(true);
       });
       document.getElementById('unpaid-card').addEventListener('click', () => { paidFilter = 'false'; markPaid(); dt.reload(true); });
+      if (sellerSelect) {
+        sellerSelect.addEventListener('change', () => { sellerFilter = sellerSelect.value; dt.reload(true); });
+        Api.get('/api/workers', { silent: true }).then(workers => {
+          const me = Auth.me;
+          const sellers = [{ id: me.id, fullName: me.fullName + ' (you)' }]
+            .concat(workers.filter(w => w.id !== me.id).sort((a, b) => a.fullName.localeCompare(b.fullName)));
+          sellers.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w.id;
+            opt.textContent = w.fullName;
+            sellerSelect.appendChild(opt);
+          });
+          sellerSelect.value = sellerFilter;
+          if (sellerSelect.value !== sellerFilter) { sellerFilter = ''; }   // unknown id in the URL: fall back to everyone
+        }).catch(() => { /* the table still works without the seller list */ });
+      }
       [fromInput, toInput].forEach(el => el.addEventListener('change', () => { markPreset(null); dt.reload(true); }));
 
       const initial = UI.periodDates(params.get('period') || 'all');

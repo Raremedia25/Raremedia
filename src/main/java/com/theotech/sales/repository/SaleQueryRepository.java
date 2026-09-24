@@ -19,8 +19,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Sales history with optional date range, paid/unpaid filter and product-name search, plus the totals of
- * the same filter so the page footer ("20 items, RWF 300,000, RWF 40,000 not paid") always matches the rows.
+ * Sales history with optional date range, paid/unpaid filter, seller filter and product-name search, plus the
+ * totals of the same filter so the page footer ("20 items, RWF 300,000, RWF 40,000 not paid") always matches the rows.
+ * The seller is joined only to sort by name ({@code soldByName}); the rows themselves carry {@code soldBy}.
  */
 @Repository
 public class SaleQueryRepository {
@@ -33,7 +34,8 @@ public class SaleQueryRepository {
             "unitPrice", "s.unitPrice",
             "total", "s.total",
             "paid", "s.paid",
-            "customerName", "s.customerName");
+            "customerName", "s.customerName",
+            "soldByName", "u.fullName");
 
     public record Totals(long quantity, BigDecimal amount, long unpaidCount, BigDecimal unpaidAmount) {
     }
@@ -41,21 +43,22 @@ public class SaleQueryRepository {
     @PersistenceContext
     private EntityManager em;
 
-    public Page<Sale> find(Instant from, Instant to, String q, Boolean paid, Pageable pageable) {
-        Filter f = filter(from, to, q, paid);
+    public Page<Sale> find(Instant from, Instant to, String q, Boolean paid, Long soldBy, Pageable pageable) {
+        Filter f = filter(from, to, q, paid, soldBy);
         TypedQuery<Long> count = em.createQuery("select count(s) from Sale s" + f.where, Long.class);
         f.params.forEach(count::setParameter);
         long total = count.getSingleResult();
 
-        TypedQuery<Sale> select = em.createQuery("select s from Sale s" + f.where + orderBy(pageable.getSort()), Sale.class);
+        TypedQuery<Sale> select = em.createQuery("select s from Sale s left join User u on u.id = s.soldBy" + f.where
+                + orderBy(pageable.getSort()), Sale.class);
         f.params.forEach(select::setParameter);
         select.setFirstResult((int) pageable.getOffset());
         select.setMaxResults(pageable.getPageSize());
         return new PageImpl<>(select.getResultList(), pageable, total);
     }
 
-    public Totals totals(Instant from, Instant to, String q, Boolean paid) {
-        Filter f = filter(from, to, q, paid);
+    public Totals totals(Instant from, Instant to, String q, Boolean paid, Long soldBy) {
+        Filter f = filter(from, to, q, paid, soldBy);
         TypedQuery<Object[]> query = em.createQuery(
                 "select coalesce(sum(s.quantity), 0), coalesce(sum(s.total), 0), " +
                 "coalesce(sum(case when s.paid = false then 1 end), 0), coalesce(sum(case when s.paid = false then s.total end), 0) " +
@@ -68,7 +71,7 @@ public class SaleQueryRepository {
     private record Filter(String where, Map<String, Object> params) {
     }
 
-    private static Filter filter(Instant from, Instant to, String q, Boolean paid) {
+    private static Filter filter(Instant from, Instant to, String q, Boolean paid, Long soldBy) {
         List<String> clauses = new ArrayList<>();
         Map<String, Object> params = new HashMap<>();
         if (from != null) {
@@ -82,6 +85,10 @@ public class SaleQueryRepository {
         if (paid != null) {
             clauses.add("s.paid = :paid");
             params.put("paid", paid);
+        }
+        if (soldBy != null) {
+            clauses.add("s.soldBy = :soldBy");
+            params.put("soldBy", soldBy);
         }
         if (q != null && !q.isBlank()) {
             clauses.add("(lower(s.productName) like :q or lower(coalesce(s.customerName, '')) like :q)");

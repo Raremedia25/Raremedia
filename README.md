@@ -95,7 +95,7 @@ POST   /api/products/{id}/stock              { "quantity": 20 }
 GET/POST/DELETE /api/products/{id}/image     the picture (POST = multipart "file", jpeg/png/webp/gif)
 GET/POST /api/workers   PUT /api/workers/{id}   POST /api/workers/{id}/reset-password   DELETE /api/workers/{id}   (admin only)
 GET    /api/categories                       POST /api/categories                  DELETE /api/categories/{id}
-GET    /api/sales?from&to&q&paid&page&size&sort   GET /api/sales/{id}   GET /api/sales/receipt/{no}
+GET    /api/sales?from&to&q&paid&soldBy&page&size&sort   GET /api/sales/{id}   GET /api/sales/receipt/{no}
 POST   /api/sales  { "items": [ { "productId": 5, "quantity": 3 }, … ], "paid": false, "customerName": "Uwase" }
        (or a single "productId"/"quantity"; paid defaults to true; answers with the receipt and its lines)
 POST   /api/sales/receipt/{no}/paid  { "paid": true }     POST /api/sales/{id}/paid  (pays the receipt the line belongs to)

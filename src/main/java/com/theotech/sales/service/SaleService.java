@@ -133,11 +133,12 @@ public class SaleService {
         return ReceiptResponse.of(toResponses(lines));
     }
 
-    public SalesHistoryResponse history(Instant from, Instant to, String q, Boolean paid, Pageable pageable) {
-        Page<Sale> page = saleQuery.find(from, to, q, paid, pageable);
+    /** {@code soldBy} narrows to one seller (a user id); null = everyone. */
+    public SalesHistoryResponse history(Instant from, Instant to, String q, Boolean paid, Long soldBy, Pageable pageable) {
+        Page<Sale> page = saleQuery.find(from, to, q, paid, soldBy, pageable);
         PageResponse<SaleResponse> response = new PageResponse<>(toResponses(page.getContent()), page.getNumber(),
                 page.getSize(), page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
-        return SalesHistoryResponse.of(response, saleQuery.totals(from, to, q, paid));
+        return SalesHistoryResponse.of(response, saleQuery.totals(from, to, q, paid, soldBy));
     }
 
     /** The ten most recent sale lines, for the dashboard. */
